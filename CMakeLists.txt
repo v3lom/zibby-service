@@ -4,7 +4,18 @@ if(POLICY CMP0167)
     cmake_policy(SET CMP0167 NEW)
 endif()
 
-project(zibby-service VERSION 0.1.0 LANGUAGES CXX)
+project(zibby-service VERSION 1.0.0.0 LANGUAGES CXX)
+
+set(PROJECT_AUTHOR "v3lom")
+
+# Configure a header file to pass some of the CMake settings to the source code
+configure_file(
+  "${PROJECT_SOURCE_DIR}/src/version.h.in"
+  "${PROJECT_BINARY_DIR}/version.h"
+)
+
+# Add the binary directory to the include path to find version.h
+include_directories("${PROJECT_BINARY_DIR}")
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -34,8 +45,11 @@ include(GNUInstallDirs)
 
 find_package(Boost 1.70 REQUIRED COMPONENTS filesystem system program_options)
 find_package(OpenSSL REQUIRED)
-find_package(SQLite3 REQUIRED)
 find_package(Threads REQUIRED)
+
+if(WIN32)
+    find_package(SQLite3 REQUIRED)
+endif()
 
 set(ZIBBY_COMMON_SOURCES
     src/core/service.cpp

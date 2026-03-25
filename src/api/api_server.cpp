@@ -1,5 +1,6 @@
 #include "api/api_server.h"
 
+#include "version.h"
 #include "api/api_protocol.h"
 #include "core/database.h"
 #include "core/message.h"

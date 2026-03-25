@@ -59,7 +59,7 @@ int main(int argc, char* argv[]) {
     }
 
     if (variables.count("version") > 0) {
-        std::cout << "zibby-service " << ZIBBY_VERSION << '\n';
+        std::cout << "zibby-service " << ZIBBY_VERSION_STRING << " by " << ZIBBY_AUTHOR_STRING << '\n';
         return 0;
     }
 
