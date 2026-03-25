@@ -65,6 +65,7 @@ add_executable(zibby_api_server_test
     ${CMAKE_SOURCE_DIR}/src/core/profile.cpp
     ${CMAKE_SOURCE_DIR}/src/core/crypto.cpp
     ${CMAKE_SOURCE_DIR}/src/core/network.cpp
+    ${CMAKE_SOURCE_DIR}/src/utils/logger.cpp
 )
 
 target_include_directories(zibby_api_server_test
@@ -87,6 +88,10 @@ target_link_libraries(zibby_api_server_test
         SQLite3::SQLite3
         Threads::Threads
 )
+
+if(WIN32)
+    target_link_libraries(zibby_api_server_test PRIVATE ws2_32 mswsock)
+endif()
 
 add_test(
     NAME zibby_api_server_test
