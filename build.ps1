@@ -22,6 +22,29 @@ function Invoke-External {
     }
 }
 
+function Ensure-MakensisOnPath {
+    if (Get-Command makensis -ErrorAction SilentlyContinue) {
+        return
+    }
+
+    $candidates = @(
+        "${env:ProgramFiles(x86)}\NSIS\makensis.exe",
+        "$env:ProgramFiles\NSIS\makensis.exe",
+        "$env:SystemDrive\msys64\mingw64\bin\makensis.exe",
+        "$env:SystemDrive\tools\msys64\mingw64\bin\makensis.exe"
+    )
+
+    foreach ($exe in $candidates) {
+        if (Test-Path $exe) {
+            $dir = Split-Path -Parent $exe
+            if ($env:PATH -notlike "*$dir*") {
+                $env:PATH = "$dir;$env:PATH"
+            }
+            return
+        }
+    }
+}
+
 function Show-Menu {
     Write-Host "Select build type:"
     Write-Host "1) Debug"
@@ -93,6 +116,7 @@ if ($TestOnly) {
     exit 0
 }
 
+Ensure-MakensisOnPath
 Invoke-External -FilePath "cpack" -Arguments @("-C", $buildType)
 
 if (Test-Path (Join-Path $PSScriptRoot "scripts\generate_checksums.ps1")) {
