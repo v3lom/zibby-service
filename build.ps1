@@ -1,6 +1,11 @@
 param(
     [switch]$InstallDeps,
-    [switch]$TestOnly
+    [switch]$TestOnly,
+    [string]$BuildType = "Release",
+    [bool]$EnableTests = $true,
+    [bool]$EnableCalls = $false,
+    [bool]$EnablePlugins = $true,
+    [switch]$Interactive
 )
 
 $ErrorActionPreference = "Stop"
@@ -25,10 +30,17 @@ if ($InstallDeps) {
     & "$PSScriptRoot\scripts\install_deps_windows.ps1"
 }
 
-$buildType = Show-Menu
-$enableTests = Show-YesNo "Enable tests?"
-$enableCalls = Show-YesNo "Enable calls module?" $false
-$enablePlugins = Show-YesNo "Enable plugins module?"
+if ($Interactive) {
+    $buildType = Show-Menu
+    $enableTests = Show-YesNo "Enable tests?"
+    $enableCalls = Show-YesNo "Enable calls module?" $false
+    $enablePlugins = Show-YesNo "Enable plugins module?"
+} else {
+    $buildType = $BuildType
+    $enableTests = $EnableTests
+    $enableCalls = $EnableCalls
+    $enablePlugins = $EnablePlugins
+}
 
 $buildDir = Join-Path $PSScriptRoot "build"
 if (!(Test-Path $buildDir)) {
@@ -37,18 +49,18 @@ if (!(Test-Path $buildDir)) {
 
 Push-Location $buildDir
 
+Write-Host "Configuring with BuildType=$buildType, Tests=$enableTests, Calls=$enableCalls, Plugins=$enablePlugins"
+
 cmake .. `
+    -G "Ninja" `
     -DCMAKE_BUILD_TYPE=$buildType `
     -DBUILD_TESTS=$(if ($enableTests) {"ON"} else {"OFF"}) `
     -DBUILD_CALLS=$(if ($enableCalls) {"ON"} else {"OFF"}) `
     -DBUILD_PLUGINS=$(if ($enablePlugins) {"ON"} else {"OFF"})
 
-if ($enableTests) {
-    cmake --build . --config $buildType --target zibby-service
-    ctest -C $buildType --output-on-failure
-}
-
 if ($TestOnly) {
+    cmake --build . --config $buildType --target zibby-service-tests
+    ctest -C $buildType --output-on-failure
     Pop-Location
     exit 0
 }
@@ -61,3 +73,4 @@ if (Test-Path (Join-Path $PSScriptRoot "scripts\generate_checksums.ps1")) {
 }
 
 Pop-Location
+
