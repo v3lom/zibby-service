@@ -59,6 +59,8 @@ set(ZIBBY_COMMON_SOURCES
     src/core/message.cpp
     src/core/profile.cpp
     src/core/network.cpp
+    src/cli/cli.cpp
+    src/cli/commands.cpp
     src/cli/tui.cpp
     src/utils/logger.cpp
     src/api/api_server.cpp

@@ -8,6 +8,7 @@
 
 #include "version.h"
 
+#include "cli/cli.h"
 #include "cli/tui.h"
 
 #include <boost/program_options.hpp>
@@ -258,13 +259,13 @@ int main(int argc, char* argv[]) {
     }
 
     if (variables.count("cli") > 0) {
-        if (service.pingRunningInstance()) {
-            std::cout << "Connected: running instance is available" << '\n';
-            return 0;
+        if (!service.pingRunningInstance()) {
+            std::cout << "Service is not running" << '\n';
+            return 2;
         }
 
-        std::cout << "Service is not running" << '\n';
-        return 2;
+        zibby::cli::Cli cli;
+        return cli.run(service.apiEndpoint(), service.apiToken());
     }
 
     const bool daemonMode = variables.count("daemon") > 0;
