@@ -1,0 +1,8 @@
+#pragma once
+
+#define ZIBBY_VERSION_MAJOR 1
+#define ZIBBY_VERSION_MINOR 0
+#define ZIBBY_VERSION_PATCH 0
+
+#define ZIBBY_VERSION_STRING "1.0.0.0"
+#define ZIBBY_AUTHOR_STRING "v3lom"

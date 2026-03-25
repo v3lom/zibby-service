@@ -17,7 +17,7 @@ jobs:
       - name: Install linters
         run: |
           sudo apt update
-          sudo apt install -y cppcheck clang-tidy
+          sudo apt install -y cppcheck clang-tidy cmake ninja-build libboost-all-dev libssl-dev libsqlite3-dev
 
       - name: Run cppcheck
         run: |
@@ -52,12 +52,19 @@ jobs:
 
       - name: Install dependencies (Windows)
         if: runner.os == 'Windows'
+        shell: pwsh
         run: |
-          choco install doxygen.install graphviz
-          pacman -S --noconfirm --needed mingw-w64-x86_64-boost mingw-w64-x86_64-openssl mingw-w64-x86_64-sqlite3
+          choco install -y doxygen.install graphviz ninja
+          vcpkg install boost-filesystem boost-system boost-program-options openssl sqlite3 --triplet x64-windows
 
       - name: Configure
+        if: runner.os == 'Linux'
         run: cmake -S . -B build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DZIBBY_ENABLE_TESTS=ON -G Ninja
+
+      - name: Configure (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DZIBBY_ENABLE_TESTS=ON -G Ninja -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake"
 
       - name: Build
         run: cmake --build build --config ${{ matrix.build_type }}
@@ -71,7 +78,7 @@ jobs:
 
       - name: Package
         if: runner.os == 'Linux'
-        run: cpack --config build/CPackSourceConfig.cmake -C ${{ matrix.build_type }}
+        run: cpack --config build/CPackConfig.cmake -C ${{ matrix.build_type }}
 
       - name: Generate checksums (Linux)
         if: runner.os == 'Linux'

@@ -78,6 +78,42 @@ std::string ConfigManager::defaultDataDir() {
 #endif
 }
 
+std::string ConfigManager::defaultCacheDir() {
+#ifdef _WIN32
+    const char* localAppData = std::getenv("LOCALAPPDATA");
+    if (localAppData != nullptr) {
+        return (fs::path(localAppData) / "Zibby" / "cache").string();
+    }
+    return (fs::path(defaultDataDir()) / "cache").string();
+#else
+    const char* xdgCacheHome = std::getenv("XDG_CACHE_HOME");
+    if (xdgCacheHome != nullptr) {
+        return (fs::path(xdgCacheHome) / "zibby").string();
+    }
+    const char* home = std::getenv("HOME");
+    if (home != nullptr) {
+        return (fs::path(home) / ".cache" / "zibby").string();
+    }
+    return (fs::path(defaultDataDir()) / "cache").string();
+#endif
+}
+
+std::string ConfigManager::defaultDownloadDir() {
+#ifdef _WIN32
+    const char* userProfile = std::getenv("USERPROFILE");
+    if (userProfile != nullptr) {
+        return (fs::path(userProfile) / "Downloads" / "ZibbyDownloads").string();
+    }
+    return (fs::path(defaultDataDir()) / "downloads").string();
+#else
+    const char* home = std::getenv("HOME");
+    if (home != nullptr) {
+        return (fs::path(home) / "Downloads" / "zibby-downloads").string();
+    }
+    return (fs::path(defaultDataDir()) / "downloads").string();
+#endif
+}
+
 std::string ConfigManager::defaultConfigPath() {
 #ifdef _WIN32
     const char* appData = std::getenv("APPDATA");
@@ -115,9 +151,18 @@ Config ConfigManager::loadOrCreate() {
 
     const auto configuredDataDir = tree.get<std::string>("storage.data_dir", "");
     config.dataDir = configuredDataDir.empty() ? defaultDataDir() : configuredDataDir;
+    const auto configuredCacheDir = tree.get<std::string>("storage.cache_dir", "");
+    config.cacheDir = configuredCacheDir.empty() ? defaultCacheDir() : configuredCacheDir;
+    const auto configuredDownloadDir = tree.get<std::string>("storage.download_dir", "");
+    config.downloadDir = configuredDownloadDir.empty() ? defaultDownloadDir() : configuredDownloadDir;
 
     fs::create_directories(config.dataDir);
+    fs::create_directories(config.cacheDir);
+    fs::create_directories(config.downloadDir);
     config.dbFile = (fs::path(config.dataDir) / "zibby.sqlite3").string();
+    config.updatesEnabled = tree.get<bool>("updates.enabled", true);
+    config.updatesRepoUrl = tree.get<std::string>("updates.repo_url", "https://github.com/v3lom/zibby-service");
+    config.updatesCheckIntervalHours = tree.get<int>("updates.check_interval_hours", 24);
 
     return config;
 }

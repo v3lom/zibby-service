@@ -1,0 +1,170 @@
+[
+{
+  "directory": "/home/runner/work/zibby-service/zibby-service/build-lint",
+  "command": "/usr/bin/c++ -DBOOST_ATOMIC_DYN_LINK -DBOOST_ATOMIC_NO_LIB -DBOOST_FILESYSTEM_DYN_LINK -DBOOST_FILESYSTEM_NO_LIB -DBOOST_PROGRAM_OPTIONS_DYN_LINK -DBOOST_PROGRAM_OPTIONS_NO_LIB -DBOOST_SYSTEM_DYN_LINK -DBOOST_SYSTEM_NO_LIB -DZIBBY_VERSION=\\\"1.0.0.0\\\" -I/home/runner/work/zibby-service/zibby-service/build-lint -I/home/runner/work/zibby-service/zibby-service/src -I/home/runner/work/zibby-service/zibby-service/include -O3 -DNDEBUG -std=c++17 -Wall -Wextra -Wpedantic -o CMakeFiles/zibby-service.dir/src/core/main.cpp.o -c /home/runner/work/zibby-service/zibby-service/src/core/main.cpp",
+  "file": "/home/runner/work/zibby-service/zibby-service/src/core/main.cpp",
+  "output": "CMakeFiles/zibby-service.dir/src/core/main.cpp.o"
+},
+{
+  "directory": "/home/runner/work/zibby-service/zibby-service/build-lint",
+  "command": "/usr/bin/c++ -DBOOST_ATOMIC_DYN_LINK -DBOOST_ATOMIC_NO_LIB -DBOOST_FILESYSTEM_DYN_LINK -DBOOST_FILESYSTEM_NO_LIB -DBOOST_PROGRAM_OPTIONS_DYN_LINK -DBOOST_PROGRAM_OPTIONS_NO_LIB -DBOOST_SYSTEM_DYN_LINK -DBOOST_SYSTEM_NO_LIB -DZIBBY_VERSION=\\\"1.0.0.0\\\" -I/home/runner/work/zibby-service/zibby-service/build-lint -I/home/runner/work/zibby-service/zibby-service/src -I/home/runner/work/zibby-service/zibby-service/include -O3 -DNDEBUG -std=c++17 -Wall -Wextra -Wpedantic -o CMakeFiles/zibby-service.dir/src/core/service.cpp.o -c /home/runner/work/zibby-service/zibby-service/src/core/service.cpp",
+  "file": "/home/runner/work/zibby-service/zibby-service/src/core/service.cpp",
+  "output": "CMakeFiles/zibby-service.dir/src/core/service.cpp.o"
+},
+{
+  "directory": "/home/runner/work/zibby-service/zibby-service/build-lint",
+  "command": "/usr/bin/c++ -DBOOST_ATOMIC_DYN_LINK -DBOOST_ATOMIC_NO_LIB -DBOOST_FILESYSTEM_DYN_LINK -DBOOST_FILESYSTEM_NO_LIB -DBOOST_PROGRAM_OPTIONS_DYN_LINK -DBOOST_PROGRAM_OPTIONS_NO_LIB -DBOOST_SYSTEM_DYN_LINK -DBOOST_SYSTEM_NO_LIB -DZIBBY_VERSION=\\\"1.0.0.0\\\" -I/home/runner/work/zibby-service/zibby-service/build-lint -I/home/runner/work/zibby-service/zibby-service/src -I/home/runner/work/zibby-service/zibby-service/include -O3 -DNDEBUG -std=c++17 -Wall -Wextra -Wpedantic -o CMakeFiles/zibby-service.dir/src/core/config.cpp.o -c /home/runner/work/zibby-service/zibby-service/src/core/config.cpp",
+  "file": "/home/runner/work/zibby-service/zibby-service/src/core/config.cpp",
+  "output": "CMakeFiles/zibby-service.dir/src/core/config.cpp.o"
+},
+{
+  "directory": "/home/runner/work/zibby-service/zibby-service/build-lint",
+  "command": "/usr/bin/c++ -DBOOST_ATOMIC_DYN_LINK -DBOOST_ATOMIC_NO_LIB -DBOOST_FILESYSTEM_DYN_LINK -DBOOST_FILESYSTEM_NO_LIB -DBOOST_PROGRAM_OPTIONS_DYN_LINK -DBOOST_PROGRAM_OPTIONS_NO_LIB -DBOOST_SYSTEM_DYN_LINK -DBOOST_SYSTEM_NO_LIB -DZIBBY_VERSION=\\\"1.0.0.0\\\" -I/home/runner/work/zibby-service/zibby-service/build-lint -I/home/runner/work/zibby-service/zibby-service/src -I/home/runner/work/zibby-service/zibby-service/include -O3 -DNDEBUG -std=c++17 -Wall -Wextra -Wpedantic -o CMakeFiles/zibby-service.dir/src/core/database.cpp.o -c /home/runner/work/zibby-service/zibby-service/src/core/database.cpp",
+  "file": "/home/runner/work/zibby-service/zibby-service/src/core/database.cpp",
+  "output": "CMakeFiles/zibby-service.dir/src/core/database.cpp.o"
+},
+{
+  "directory": "/home/runner/work/zibby-service/zibby-service/build-lint",
+  "command": "/usr/bin/c++ -DBOOST_ATOMIC_DYN_LINK -DBOOST_ATOMIC_NO_LIB -DBOOST_FILESYSTEM_DYN_LINK -DBOOST_FILESYSTEM_NO_LIB -DBOOST_PROGRAM_OPTIONS_DYN_LINK -DBOOST_PROGRAM_OPTIONS_NO_LIB -DBOOST_SYSTEM_DYN_LINK -DBOOST_SYSTEM_NO_LIB -DZIBBY_VERSION=\\\"1.0.0.0\\\" -I/home/runner/work/zibby-service/zibby-service/build-lint -I/home/runner/work/zibby-service/zibby-service/src -I/home/runner/work/zibby-service/zibby-service/include -O3 -DNDEBUG -std=c++17 -Wall -Wextra -Wpedantic -o CMakeFiles/zibby-service.dir/src/core/crypto.cpp.o -c /home/runner/work/zibby-service/zibby-service/src/core/crypto.cpp",
+  "file": "/home/runner/work/zibby-service/zibby-service/src/core/crypto.cpp",
+  "output": "CMakeFiles/zibby-service.dir/src/core/crypto.cpp.o"
+},
+{
+  "directory": "/home/runner/work/zibby-service/zibby-service/build-lint",
+  "command": "/usr/bin/c++ -DBOOST_ATOMIC_DYN_LINK -DBOOST_ATOMIC_NO_LIB -DBOOST_FILESYSTEM_DYN_LINK -DBOOST_FILESYSTEM_NO_LIB -DBOOST_PROGRAM_OPTIONS_DYN_LINK -DBOOST_PROGRAM_OPTIONS_NO_LIB -DBOOST_SYSTEM_DYN_LINK -DBOOST_SYSTEM_NO_LIB -DZIBBY_VERSION=\\\"1.0.0.0\\\" -I/home/runner/work/zibby-service/zibby-service/build-lint -I/home/runner/work/zibby-service/zibby-service/src -I/home/runner/work/zibby-service/zibby-service/include -O3 -DNDEBUG -std=c++17 -Wall -Wextra -Wpedantic -o CMakeFiles/zibby-service.dir/src/core/message.cpp.o -c /home/runner/work/zibby-service/zibby-service/src/core/message.cpp",
+  "file": "/home/runner/work/zibby-service/zibby-service/src/core/message.cpp",
+  "output": "CMakeFiles/zibby-service.dir/src/core/message.cpp.o"
+},
+{
+  "directory": "/home/runner/work/zibby-service/zibby-service/build-lint",
+  "command": "/usr/bin/c++ -DBOOST_ATOMIC_DYN_LINK -DBOOST_ATOMIC_NO_LIB -DBOOST_FILESYSTEM_DYN_LINK -DBOOST_FILESYSTEM_NO_LIB -DBOOST_PROGRAM_OPTIONS_DYN_LINK -DBOOST_PROGRAM_OPTIONS_NO_LIB -DBOOST_SYSTEM_DYN_LINK -DBOOST_SYSTEM_NO_LIB -DZIBBY_VERSION=\\\"1.0.0.0\\\" -I/home/runner/work/zibby-service/zibby-service/build-lint -I/home/runner/work/zibby-service/zibby-service/src -I/home/runner/work/zibby-service/zibby-service/include -O3 -DNDEBUG -std=c++17 -Wall -Wextra -Wpedantic -o CMakeFiles/zibby-service.dir/src/core/profile.cpp.o -c /home/runner/work/zibby-service/zibby-service/src/core/profile.cpp",
+  "file": "/home/runner/work/zibby-service/zibby-service/src/core/profile.cpp",
+  "output": "CMakeFiles/zibby-service.dir/src/core/profile.cpp.o"
+},
+{
+  "directory": "/home/runner/work/zibby-service/zibby-service/build-lint",
+  "command": "/usr/bin/c++ -DBOOST_ATOMIC_DYN_LINK -DBOOST_ATOMIC_NO_LIB -DBOOST_FILESYSTEM_DYN_LINK -DBOOST_FILESYSTEM_NO_LIB -DBOOST_PROGRAM_OPTIONS_DYN_LINK -DBOOST_PROGRAM_OPTIONS_NO_LIB -DBOOST_SYSTEM_DYN_LINK -DBOOST_SYSTEM_NO_LIB -DZIBBY_VERSION=\\\"1.0.0.0\\\" -I/home/runner/work/zibby-service/zibby-service/build-lint -I/home/runner/work/zibby-service/zibby-service/src -I/home/runner/work/zibby-service/zibby-service/include -O3 -DNDEBUG -std=c++17 -Wall -Wextra -Wpedantic -o CMakeFiles/zibby-service.dir/src/core/network.cpp.o -c /home/runner/work/zibby-service/zibby-service/src/core/network.cpp",
+  "file": "/home/runner/work/zibby-service/zibby-service/src/core/network.cpp",
+  "output": "CMakeFiles/zibby-service.dir/src/core/network.cpp.o"
+},
+{
+  "directory": "/home/runner/work/zibby-service/zibby-service/build-lint",
+  "command": "/usr/bin/c++ -DBOOST_ATOMIC_DYN_LINK -DBOOST_ATOMIC_NO_LIB -DBOOST_FILESYSTEM_DYN_LINK -DBOOST_FILESYSTEM_NO_LIB -DBOOST_PROGRAM_OPTIONS_DYN_LINK -DBOOST_PROGRAM_OPTIONS_NO_LIB -DBOOST_SYSTEM_DYN_LINK -DBOOST_SYSTEM_NO_LIB -DZIBBY_VERSION=\\\"1.0.0.0\\\" -I/home/runner/work/zibby-service/zibby-service/build-lint -I/home/runner/work/zibby-service/zibby-service/src -I/home/runner/work/zibby-service/zibby-service/include -O3 -DNDEBUG -std=c++17 -Wall -Wextra -Wpedantic -o CMakeFiles/zibby-service.dir/src/cli/cli.cpp.o -c /home/runner/work/zibby-service/zibby-service/src/cli/cli.cpp",
+  "file": "/home/runner/work/zibby-service/zibby-service/src/cli/cli.cpp",
+  "output": "CMakeFiles/zibby-service.dir/src/cli/cli.cpp.o"
+},
+{
+  "directory": "/home/runner/work/zibby-service/zibby-service/build-lint",
+  "command": "/usr/bin/c++ -DBOOST_ATOMIC_DYN_LINK -DBOOST_ATOMIC_NO_LIB -DBOOST_FILESYSTEM_DYN_LINK -DBOOST_FILESYSTEM_NO_LIB -DBOOST_PROGRAM_OPTIONS_DYN_LINK -DBOOST_PROGRAM_OPTIONS_NO_LIB -DBOOST_SYSTEM_DYN_LINK -DBOOST_SYSTEM_NO_LIB -DZIBBY_VERSION=\\\"1.0.0.0\\\" -I/home/runner/work/zibby-service/zibby-service/build-lint -I/home/runner/work/zibby-service/zibby-service/src -I/home/runner/work/zibby-service/zibby-service/include -O3 -DNDEBUG -std=c++17 -Wall -Wextra -Wpedantic -o CMakeFiles/zibby-service.dir/src/cli/commands.cpp.o -c /home/runner/work/zibby-service/zibby-service/src/cli/commands.cpp",
+  "file": "/home/runner/work/zibby-service/zibby-service/src/cli/commands.cpp",
+  "output": "CMakeFiles/zibby-service.dir/src/cli/commands.cpp.o"
+},
+{
+  "directory": "/home/runner/work/zibby-service/zibby-service/build-lint",
+  "command": "/usr/bin/c++ -DBOOST_ATOMIC_DYN_LINK -DBOOST_ATOMIC_NO_LIB -DBOOST_FILESYSTEM_DYN_LINK -DBOOST_FILESYSTEM_NO_LIB -DBOOST_PROGRAM_OPTIONS_DYN_LINK -DBOOST_PROGRAM_OPTIONS_NO_LIB -DBOOST_SYSTEM_DYN_LINK -DBOOST_SYSTEM_NO_LIB -DZIBBY_VERSION=\\\"1.0.0.0\\\" -I/home/runner/work/zibby-service/zibby-service/build-lint -I/home/runner/work/zibby-service/zibby-service/src -I/home/runner/work/zibby-service/zibby-service/include -O3 -DNDEBUG -std=c++17 -Wall -Wextra -Wpedantic -o CMakeFiles/zibby-service.dir/src/cli/tui.cpp.o -c /home/runner/work/zibby-service/zibby-service/src/cli/tui.cpp",
+  "file": "/home/runner/work/zibby-service/zibby-service/src/cli/tui.cpp",
+  "output": "CMakeFiles/zibby-service.dir/src/cli/tui.cpp.o"
+},
+{
+  "directory": "/home/runner/work/zibby-service/zibby-service/build-lint",
+  "command": "/usr/bin/c++ -DBOOST_ATOMIC_DYN_LINK -DBOOST_ATOMIC_NO_LIB -DBOOST_FILESYSTEM_DYN_LINK -DBOOST_FILESYSTEM_NO_LIB -DBOOST_PROGRAM_OPTIONS_DYN_LINK -DBOOST_PROGRAM_OPTIONS_NO_LIB -DBOOST_SYSTEM_DYN_LINK -DBOOST_SYSTEM_NO_LIB -DZIBBY_VERSION=\\\"1.0.0.0\\\" -I/home/runner/work/zibby-service/zibby-service/build-lint -I/home/runner/work/zibby-service/zibby-service/src -I/home/runner/work/zibby-service/zibby-service/include -O3 -DNDEBUG -std=c++17 -Wall -Wextra -Wpedantic -o CMakeFiles/zibby-service.dir/src/utils/logger.cpp.o -c /home/runner/work/zibby-service/zibby-service/src/utils/logger.cpp",
+  "file": "/home/runner/work/zibby-service/zibby-service/src/utils/logger.cpp",
+  "output": "CMakeFiles/zibby-service.dir/src/utils/logger.cpp.o"
+},
+{
+  "directory": "/home/runner/work/zibby-service/zibby-service/build-lint",
+  "command": "/usr/bin/c++ -DBOOST_ATOMIC_DYN_LINK -DBOOST_ATOMIC_NO_LIB -DBOOST_FILESYSTEM_DYN_LINK -DBOOST_FILESYSTEM_NO_LIB -DBOOST_PROGRAM_OPTIONS_DYN_LINK -DBOOST_PROGRAM_OPTIONS_NO_LIB -DBOOST_SYSTEM_DYN_LINK -DBOOST_SYSTEM_NO_LIB -DZIBBY_VERSION=\\\"1.0.0.0\\\" -I/home/runner/work/zibby-service/zibby-service/build-lint -I/home/runner/work/zibby-service/zibby-service/src -I/home/runner/work/zibby-service/zibby-service/include -O3 -DNDEBUG -std=c++17 -Wall -Wextra -Wpedantic -o CMakeFiles/zibby-service.dir/src/api/api_server.cpp.o -c /home/runner/work/zibby-service/zibby-service/src/api/api_server.cpp",
+  "file": "/home/runner/work/zibby-service/zibby-service/src/api/api_server.cpp",
+  "output": "CMakeFiles/zibby-service.dir/src/api/api_server.cpp.o"
+},
+{
+  "directory": "/home/runner/work/zibby-service/zibby-service/build-lint/tests",
+  "command": "/usr/bin/c++ -DBOOST_ATOMIC_DYN_LINK -DBOOST_ATOMIC_NO_LIB -DBOOST_FILESYSTEM_DYN_LINK -DBOOST_FILESYSTEM_NO_LIB -DBOOST_PROGRAM_OPTIONS_DYN_LINK -DBOOST_PROGRAM_OPTIONS_NO_LIB -DBOOST_SYSTEM_DYN_LINK -DBOOST_SYSTEM_NO_LIB -I/home/runner/work/zibby-service/zibby-service/build-lint -I/home/runner/work/zibby-service/zibby-service/src -I/home/runner/work/zibby-service/zibby-service/include -O3 -DNDEBUG -std=c++17 -o CMakeFiles/zibby_message_flow_test.dir/unit/message_flow_test.cpp.o -c /home/runner/work/zibby-service/zibby-service/tests/unit/message_flow_test.cpp",
+  "file": "/home/runner/work/zibby-service/zibby-service/tests/unit/message_flow_test.cpp",
+  "output": "tests/CMakeFiles/zibby_message_flow_test.dir/unit/message_flow_test.cpp.o"
+},
+{
+  "directory": "/home/runner/work/zibby-service/zibby-service/build-lint/tests",
+  "command": "/usr/bin/c++ -DBOOST_ATOMIC_DYN_LINK -DBOOST_ATOMIC_NO_LIB -DBOOST_FILESYSTEM_DYN_LINK -DBOOST_FILESYSTEM_NO_LIB -DBOOST_PROGRAM_OPTIONS_DYN_LINK -DBOOST_PROGRAM_OPTIONS_NO_LIB -DBOOST_SYSTEM_DYN_LINK -DBOOST_SYSTEM_NO_LIB -I/home/runner/work/zibby-service/zibby-service/build-lint -I/home/runner/work/zibby-service/zibby-service/src -I/home/runner/work/zibby-service/zibby-service/include -O3 -DNDEBUG -std=c++17 -o CMakeFiles/zibby_message_flow_test.dir/__/src/core/database.cpp.o -c /home/runner/work/zibby-service/zibby-service/src/core/database.cpp",
+  "file": "/home/runner/work/zibby-service/zibby-service/src/core/database.cpp",
+  "output": "tests/CMakeFiles/zibby_message_flow_test.dir/__/src/core/database.cpp.o"
+},
+{
+  "directory": "/home/runner/work/zibby-service/zibby-service/build-lint/tests",
+  "command": "/usr/bin/c++ -DBOOST_ATOMIC_DYN_LINK -DBOOST_ATOMIC_NO_LIB -DBOOST_FILESYSTEM_DYN_LINK -DBOOST_FILESYSTEM_NO_LIB -DBOOST_PROGRAM_OPTIONS_DYN_LINK -DBOOST_PROGRAM_OPTIONS_NO_LIB -DBOOST_SYSTEM_DYN_LINK -DBOOST_SYSTEM_NO_LIB -I/home/runner/work/zibby-service/zibby-service/build-lint -I/home/runner/work/zibby-service/zibby-service/src -I/home/runner/work/zibby-service/zibby-service/include -O3 -DNDEBUG -std=c++17 -o CMakeFiles/zibby_message_flow_test.dir/__/src/core/message.cpp.o -c /home/runner/work/zibby-service/zibby-service/src/core/message.cpp",
+  "file": "/home/runner/work/zibby-service/zibby-service/src/core/message.cpp",
+  "output": "tests/CMakeFiles/zibby_message_flow_test.dir/__/src/core/message.cpp.o"
+},
+{
+  "directory": "/home/runner/work/zibby-service/zibby-service/build-lint/tests",
+  "command": "/usr/bin/c++ -DBOOST_ATOMIC_DYN_LINK -DBOOST_ATOMIC_NO_LIB -DBOOST_FILESYSTEM_DYN_LINK -DBOOST_FILESYSTEM_NO_LIB -DBOOST_PROGRAM_OPTIONS_DYN_LINK -DBOOST_PROGRAM_OPTIONS_NO_LIB -DBOOST_SYSTEM_DYN_LINK -DBOOST_SYSTEM_NO_LIB -I/home/runner/work/zibby-service/zibby-service/build-lint -I/home/runner/work/zibby-service/zibby-service/src -I/home/runner/work/zibby-service/zibby-service/include -O3 -DNDEBUG -std=c++17 -o CMakeFiles/zibby_message_flow_test.dir/__/src/core/crypto.cpp.o -c /home/runner/work/zibby-service/zibby-service/src/core/crypto.cpp",
+  "file": "/home/runner/work/zibby-service/zibby-service/src/core/crypto.cpp",
+  "output": "tests/CMakeFiles/zibby_message_flow_test.dir/__/src/core/crypto.cpp.o"
+},
+{
+  "directory": "/home/runner/work/zibby-service/zibby-service/build-lint/tests",
+  "command": "/usr/bin/c++ -DBOOST_ATOMIC_DYN_LINK -DBOOST_ATOMIC_NO_LIB -DBOOST_FILESYSTEM_DYN_LINK -DBOOST_FILESYSTEM_NO_LIB -DBOOST_PROGRAM_OPTIONS_DYN_LINK -DBOOST_PROGRAM_OPTIONS_NO_LIB -DBOOST_SYSTEM_DYN_LINK -DBOOST_SYSTEM_NO_LIB -I/home/runner/work/zibby-service/zibby-service/build-lint -I/home/runner/work/zibby-service/zibby-service/src -I/home/runner/work/zibby-service/zibby-service/include -O3 -DNDEBUG -std=c++17 -o CMakeFiles/zibby_profile_peer_test.dir/unit/profile_peer_test.cpp.o -c /home/runner/work/zibby-service/zibby-service/tests/unit/profile_peer_test.cpp",
+  "file": "/home/runner/work/zibby-service/zibby-service/tests/unit/profile_peer_test.cpp",
+  "output": "tests/CMakeFiles/zibby_profile_peer_test.dir/unit/profile_peer_test.cpp.o"
+},
+{
+  "directory": "/home/runner/work/zibby-service/zibby-service/build-lint/tests",
+  "command": "/usr/bin/c++ -DBOOST_ATOMIC_DYN_LINK -DBOOST_ATOMIC_NO_LIB -DBOOST_FILESYSTEM_DYN_LINK -DBOOST_FILESYSTEM_NO_LIB -DBOOST_PROGRAM_OPTIONS_DYN_LINK -DBOOST_PROGRAM_OPTIONS_NO_LIB -DBOOST_SYSTEM_DYN_LINK -DBOOST_SYSTEM_NO_LIB -I/home/runner/work/zibby-service/zibby-service/build-lint -I/home/runner/work/zibby-service/zibby-service/src -I/home/runner/work/zibby-service/zibby-service/include -O3 -DNDEBUG -std=c++17 -o CMakeFiles/zibby_profile_peer_test.dir/__/src/core/database.cpp.o -c /home/runner/work/zibby-service/zibby-service/src/core/database.cpp",
+  "file": "/home/runner/work/zibby-service/zibby-service/src/core/database.cpp",
+  "output": "tests/CMakeFiles/zibby_profile_peer_test.dir/__/src/core/database.cpp.o"
+},
+{
+  "directory": "/home/runner/work/zibby-service/zibby-service/build-lint/tests",
+  "command": "/usr/bin/c++ -DBOOST_ATOMIC_DYN_LINK -DBOOST_ATOMIC_NO_LIB -DBOOST_FILESYSTEM_DYN_LINK -DBOOST_FILESYSTEM_NO_LIB -DBOOST_PROGRAM_OPTIONS_DYN_LINK -DBOOST_PROGRAM_OPTIONS_NO_LIB -DBOOST_SYSTEM_DYN_LINK -DBOOST_SYSTEM_NO_LIB -I/home/runner/work/zibby-service/zibby-service/build-lint -I/home/runner/work/zibby-service/zibby-service/src -I/home/runner/work/zibby-service/zibby-service/include -O3 -DNDEBUG -std=c++17 -o CMakeFiles/zibby_profile_peer_test.dir/__/src/core/profile.cpp.o -c /home/runner/work/zibby-service/zibby-service/src/core/profile.cpp",
+  "file": "/home/runner/work/zibby-service/zibby-service/src/core/profile.cpp",
+  "output": "tests/CMakeFiles/zibby_profile_peer_test.dir/__/src/core/profile.cpp.o"
+},
+{
+  "directory": "/home/runner/work/zibby-service/zibby-service/build-lint/tests",
+  "command": "/usr/bin/c++ -DBOOST_ATOMIC_DYN_LINK -DBOOST_ATOMIC_NO_LIB -DBOOST_FILESYSTEM_DYN_LINK -DBOOST_FILESYSTEM_NO_LIB -DBOOST_PROGRAM_OPTIONS_DYN_LINK -DBOOST_PROGRAM_OPTIONS_NO_LIB -DBOOST_SYSTEM_DYN_LINK -DBOOST_SYSTEM_NO_LIB -DZIBBY_VERSION=\\\"test\\\" -I/home/runner/work/zibby-service/zibby-service/build-lint -I/home/runner/work/zibby-service/zibby-service/src -I/home/runner/work/zibby-service/zibby-service/include -O3 -DNDEBUG -std=c++17 -o CMakeFiles/zibby_api_server_test.dir/unit/api_server_test.cpp.o -c /home/runner/work/zibby-service/zibby-service/tests/unit/api_server_test.cpp",
+  "file": "/home/runner/work/zibby-service/zibby-service/tests/unit/api_server_test.cpp",
+  "output": "tests/CMakeFiles/zibby_api_server_test.dir/unit/api_server_test.cpp.o"
+},
+{
+  "directory": "/home/runner/work/zibby-service/zibby-service/build-lint/tests",
+  "command": "/usr/bin/c++ -DBOOST_ATOMIC_DYN_LINK -DBOOST_ATOMIC_NO_LIB -DBOOST_FILESYSTEM_DYN_LINK -DBOOST_FILESYSTEM_NO_LIB -DBOOST_PROGRAM_OPTIONS_DYN_LINK -DBOOST_PROGRAM_OPTIONS_NO_LIB -DBOOST_SYSTEM_DYN_LINK -DBOOST_SYSTEM_NO_LIB -DZIBBY_VERSION=\\\"test\\\" -I/home/runner/work/zibby-service/zibby-service/build-lint -I/home/runner/work/zibby-service/zibby-service/src -I/home/runner/work/zibby-service/zibby-service/include -O3 -DNDEBUG -std=c++17 -o CMakeFiles/zibby_api_server_test.dir/__/src/api/api_server.cpp.o -c /home/runner/work/zibby-service/zibby-service/src/api/api_server.cpp",
+  "file": "/home/runner/work/zibby-service/zibby-service/src/api/api_server.cpp",
+  "output": "tests/CMakeFiles/zibby_api_server_test.dir/__/src/api/api_server.cpp.o"
+},
+{
+  "directory": "/home/runner/work/zibby-service/zibby-service/build-lint/tests",
+  "command": "/usr/bin/c++ -DBOOST_ATOMIC_DYN_LINK -DBOOST_ATOMIC_NO_LIB -DBOOST_FILESYSTEM_DYN_LINK -DBOOST_FILESYSTEM_NO_LIB -DBOOST_PROGRAM_OPTIONS_DYN_LINK -DBOOST_PROGRAM_OPTIONS_NO_LIB -DBOOST_SYSTEM_DYN_LINK -DBOOST_SYSTEM_NO_LIB -DZIBBY_VERSION=\\\"test\\\" -I/home/runner/work/zibby-service/zibby-service/build-lint -I/home/runner/work/zibby-service/zibby-service/src -I/home/runner/work/zibby-service/zibby-service/include -O3 -DNDEBUG -std=c++17 -o CMakeFiles/zibby_api_server_test.dir/__/src/core/database.cpp.o -c /home/runner/work/zibby-service/zibby-service/src/core/database.cpp",
+  "file": "/home/runner/work/zibby-service/zibby-service/src/core/database.cpp",
+  "output": "tests/CMakeFiles/zibby_api_server_test.dir/__/src/core/database.cpp.o"
+},
+{
+  "directory": "/home/runner/work/zibby-service/zibby-service/build-lint/tests",
+  "command": "/usr/bin/c++ -DBOOST_ATOMIC_DYN_LINK -DBOOST_ATOMIC_NO_LIB -DBOOST_FILESYSTEM_DYN_LINK -DBOOST_FILESYSTEM_NO_LIB -DBOOST_PROGRAM_OPTIONS_DYN_LINK -DBOOST_PROGRAM_OPTIONS_NO_LIB -DBOOST_SYSTEM_DYN_LINK -DBOOST_SYSTEM_NO_LIB -DZIBBY_VERSION=\\\"test\\\" -I/home/runner/work/zibby-service/zibby-service/build-lint -I/home/runner/work/zibby-service/zibby-service/src -I/home/runner/work/zibby-service/zibby-service/include -O3 -DNDEBUG -std=c++17 -o CMakeFiles/zibby_api_server_test.dir/__/src/core/message.cpp.o -c /home/runner/work/zibby-service/zibby-service/src/core/message.cpp",
+  "file": "/home/runner/work/zibby-service/zibby-service/src/core/message.cpp",
+  "output": "tests/CMakeFiles/zibby_api_server_test.dir/__/src/core/message.cpp.o"
+},
+{
+  "directory": "/home/runner/work/zibby-service/zibby-service/build-lint/tests",
+  "command": "/usr/bin/c++ -DBOOST_ATOMIC_DYN_LINK -DBOOST_ATOMIC_NO_LIB -DBOOST_FILESYSTEM_DYN_LINK -DBOOST_FILESYSTEM_NO_LIB -DBOOST_PROGRAM_OPTIONS_DYN_LINK -DBOOST_PROGRAM_OPTIONS_NO_LIB -DBOOST_SYSTEM_DYN_LINK -DBOOST_SYSTEM_NO_LIB -DZIBBY_VERSION=\\\"test\\\" -I/home/runner/work/zibby-service/zibby-service/build-lint -I/home/runner/work/zibby-service/zibby-service/src -I/home/runner/work/zibby-service/zibby-service/include -O3 -DNDEBUG -std=c++17 -o CMakeFiles/zibby_api_server_test.dir/__/src/core/profile.cpp.o -c /home/runner/work/zibby-service/zibby-service/src/core/profile.cpp",
+  "file": "/home/runner/work/zibby-service/zibby-service/src/core/profile.cpp",
+  "output": "tests/CMakeFiles/zibby_api_server_test.dir/__/src/core/profile.cpp.o"
+},
+{
+  "directory": "/home/runner/work/zibby-service/zibby-service/build-lint/tests",
+  "command": "/usr/bin/c++ -DBOOST_ATOMIC_DYN_LINK -DBOOST_ATOMIC_NO_LIB -DBOOST_FILESYSTEM_DYN_LINK -DBOOST_FILESYSTEM_NO_LIB -DBOOST_PROGRAM_OPTIONS_DYN_LINK -DBOOST_PROGRAM_OPTIONS_NO_LIB -DBOOST_SYSTEM_DYN_LINK -DBOOST_SYSTEM_NO_LIB -DZIBBY_VERSION=\\\"test\\\" -I/home/runner/work/zibby-service/zibby-service/build-lint -I/home/runner/work/zibby-service/zibby-service/src -I/home/runner/work/zibby-service/zibby-service/include -O3 -DNDEBUG -std=c++17 -o CMakeFiles/zibby_api_server_test.dir/__/src/core/crypto.cpp.o -c /home/runner/work/zibby-service/zibby-service/src/core/crypto.cpp",
+  "file": "/home/runner/work/zibby-service/zibby-service/src/core/crypto.cpp",
+  "output": "tests/CMakeFiles/zibby_api_server_test.dir/__/src/core/crypto.cpp.o"
+},
+{
+  "directory": "/home/runner/work/zibby-service/zibby-service/build-lint/tests",
+  "command": "/usr/bin/c++ -DBOOST_ATOMIC_DYN_LINK -DBOOST_ATOMIC_NO_LIB -DBOOST_FILESYSTEM_DYN_LINK -DBOOST_FILESYSTEM_NO_LIB -DBOOST_PROGRAM_OPTIONS_DYN_LINK -DBOOST_PROGRAM_OPTIONS_NO_LIB -DBOOST_SYSTEM_DYN_LINK -DBOOST_SYSTEM_NO_LIB -DZIBBY_VERSION=\\\"test\\\" -I/home/runner/work/zibby-service/zibby-service/build-lint -I/home/runner/work/zibby-service/zibby-service/src -I/home/runner/work/zibby-service/zibby-service/include -O3 -DNDEBUG -std=c++17 -o CMakeFiles/zibby_api_server_test.dir/__/src/core/network.cpp.o -c /home/runner/work/zibby-service/zibby-service/src/core/network.cpp",
+  "file": "/home/runner/work/zibby-service/zibby-service/src/core/network.cpp",
+  "output": "tests/CMakeFiles/zibby_api_server_test.dir/__/src/core/network.cpp.o"
+},
+{
+  "directory": "/home/runner/work/zibby-service/zibby-service/build-lint/tests",
+  "command": "/usr/bin/c++ -DBOOST_ATOMIC_DYN_LINK -DBOOST_ATOMIC_NO_LIB -DBOOST_FILESYSTEM_DYN_LINK -DBOOST_FILESYSTEM_NO_LIB -DBOOST_PROGRAM_OPTIONS_DYN_LINK -DBOOST_PROGRAM_OPTIONS_NO_LIB -DBOOST_SYSTEM_DYN_LINK -DBOOST_SYSTEM_NO_LIB -DZIBBY_VERSION=\\\"test\\\" -I/home/runner/work/zibby-service/zibby-service/build-lint -I/home/runner/work/zibby-service/zibby-service/src -I/home/runner/work/zibby-service/zibby-service/include -O3 -DNDEBUG -std=c++17 -o CMakeFiles/zibby_api_server_test.dir/__/src/utils/logger.cpp.o -c /home/runner/work/zibby-service/zibby-service/src/utils/logger.cpp",
+  "file": "/home/runner/work/zibby-service/zibby-service/src/utils/logger.cpp",
+  "output": "tests/CMakeFiles/zibby_api_server_test.dir/__/src/utils/logger.cpp.o"
+}
+]

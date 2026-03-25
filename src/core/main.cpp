@@ -13,6 +13,7 @@
 
 #include <boost/program_options.hpp>
 #include <boost/asio/ip/host_name.hpp>
+#include <boost/filesystem.hpp>
 
 #include <iostream>
 
@@ -55,6 +56,8 @@ int main(int argc, char* argv[]) {
         ("peers", "List cached discovered peers")
         ("peer-add", po::value<std::string>(), "Add peer manually: host:port:name")
         ("discover-timeout", po::value<int>()->default_value(1200), "Discovery timeout in milliseconds")
+        ("clear-cache", "Clear local cache directory")
+        ("paths", "Show configured paths (data/cache/download/config/db)")
         ("chat", po::value<std::string>(), "Chat id")
         ("from", po::value<std::string>(), "Sender id")
         ("to", po::value<std::string>(), "Recipient id")
@@ -96,6 +99,31 @@ int main(int argc, char* argv[]) {
     zibby::core::MessageService messageService(database, crypto, storageSecret);
     zibby::core::ProfileService profileService(database);
     profileService.ensureLocalProfile(boost::asio::ip::host_name());
+
+    if (variables.count("paths") > 0) {
+        std::cout << "config=" << config.configPath << '\n';
+        std::cout << "data=" << config.dataDir << '\n';
+        std::cout << "cache=" << config.cacheDir << '\n';
+        std::cout << "downloads=" << config.downloadDir << '\n';
+        std::cout << "db=" << config.dbFile << '\n';
+        return 0;
+    }
+
+    if (variables.count("clear-cache") > 0) {
+        namespace fs = boost::filesystem;
+        boost::system::error_code ec;
+        std::uintmax_t removed = 0;
+        if (fs::exists(config.cacheDir, ec)) {
+            removed = fs::remove_all(config.cacheDir, ec);
+        }
+        if (ec) {
+            std::cerr << "Cache cleanup failed: " << ec.message() << '\n';
+            return 1;
+        }
+        fs::create_directories(config.cacheDir);
+        std::cout << "Cache cleaned: " << removed << " entries removed from " << config.cacheDir << '\n';
+        return 0;
+    }
 
     if (variables.count("profile-show") > 0) {
         const auto profile = profileService.get();

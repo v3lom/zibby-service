@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.16)
 
 if(POLICY CMP0167)
-    cmake_policy(SET CMP0167 NEW)
+    cmake_policy(SET CMP0167 OLD)
 endif()
 
 project(zibby-service VERSION 1.0.0.0 LANGUAGES CXX)
@@ -45,10 +45,21 @@ include(GNUInstallDirs)
 
 find_package(Boost 1.70 REQUIRED COMPONENTS filesystem system program_options)
 find_package(OpenSSL REQUIRED)
+find_package(SQLite3 REQUIRED)
 find_package(Threads REQUIRED)
 
-if(WIN32)
-    find_package(SQLite3 REQUIRED)
+if(TARGET Boost::filesystem AND TARGET Boost::system AND TARGET Boost::program_options)
+    set(ZIBBY_BOOST_LIBS Boost::filesystem Boost::system Boost::program_options)
+else()
+    set(ZIBBY_BOOST_LIBS ${Boost_LIBRARIES})
+    include_directories(${Boost_INCLUDE_DIRS})
+endif()
+
+if(TARGET SQLite3::SQLite3)
+    set(ZIBBY_SQLITE_LIB SQLite3::SQLite3)
+else()
+    set(ZIBBY_SQLITE_LIB ${SQLite3_LIBRARIES})
+    include_directories(${SQLite3_INCLUDE_DIRS})
 endif()
 
 set(ZIBBY_COMMON_SOURCES
@@ -102,12 +113,10 @@ endif()
 
 target_link_libraries(zibby-service
     PRIVATE
-        Boost::filesystem
-        Boost::system
-        Boost::program_options
+        ${ZIBBY_BOOST_LIBS}
         OpenSSL::SSL
         OpenSSL::Crypto
-        SQLite3::SQLite3
+        ${ZIBBY_SQLITE_LIB}
     Threads::Threads
 )
 
@@ -141,9 +150,12 @@ set(CPACK_PACKAGE_NAME "zibby-service")
 set(CPACK_PACKAGE_VENDOR "Zibby")
 set(CPACK_PACKAGE_CONTACT "security@zibby.local")
 set(CPACK_PACKAGE_VERSION ${PROJECT_VERSION})
-set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Zibby decentralized IP messenger service")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Zibby decentralized IP messenger service by v3lom (https://github.com/v3lom/zibby-service)")
 set(CPACK_PACKAGE_DIRECTORY "${CMAKE_SOURCE_DIR}/installers")
 set(CPACK_GENERATOR "TGZ;ZIP")
+set(CPACK_PACKAGE_HOMEPAGE_URL "https://github.com/v3lom/zibby-service")
+set(CPACK_NSIS_DISPLAY_NAME "zibby-service")
+set(CPACK_PACKAGE_INSTALL_DIRECTORY "zibby-service")
 
 if(UNIX AND NOT APPLE)
     list(APPEND CPACK_GENERATOR "DEB;RPM")

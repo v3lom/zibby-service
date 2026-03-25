@@ -34,8 +34,11 @@ jobs:
           sudo apt update
           sudo apt install -y build-essential cmake ninja-build libboost-all-dev libssl-dev libsqlite3-dev
 
-      - name: Autobuild
-        uses: github/codeql-action/autobuild@v3
+      - name: Configure
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DZIBBY_ENABLE_TESTS=ON -G Ninja
+
+      - name: Build
+        run: cmake --build build --config Release
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
