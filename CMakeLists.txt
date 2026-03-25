@@ -10,11 +10,25 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-option(ZIBBY_ENABLE_TESTS "Build tests" ON)
-option(ZIBBY_ENABLE_PLUGINS "Enable plugin system" ON)
-option(ZIBBY_ENABLE_CALLS "Enable calls module" OFF)
-option(ZIBBY_ENABLE_TUI "Enable TUI module" ON)
-option(ZIBBY_USE_SQLCIPHER "Use SQLCipher-compatible SQLite build" OFF)
+option(BUILD_TESTS "Build tests" ON)
+option(BUILD_PLUGINS "Enable plugin system" ON)
+option(BUILD_CALLS "Enable calls module" OFF)
+option(BUILD_TUI "Enable TUI module" ON)
+option(USE_STATIC_LIBS "Link static libs when possible" OFF)
+option(USE_SQLCIPHER "Use SQLCipher-compatible SQLite build" OFF)
+
+# Backward-compatible options
+option(ZIBBY_ENABLE_TESTS "Build tests" ${BUILD_TESTS})
+option(ZIBBY_ENABLE_PLUGINS "Enable plugin system" ${BUILD_PLUGINS})
+option(ZIBBY_ENABLE_CALLS "Enable calls module" ${BUILD_CALLS})
+option(ZIBBY_ENABLE_TUI "Enable TUI module" ${BUILD_TUI})
+option(ZIBBY_USE_SQLCIPHER "Use SQLCipher-compatible SQLite build" ${USE_SQLCIPHER})
+
+set(BUILD_TESTS ${ZIBBY_ENABLE_TESTS})
+set(BUILD_PLUGINS ${ZIBBY_ENABLE_PLUGINS})
+set(BUILD_CALLS ${ZIBBY_ENABLE_CALLS})
+set(BUILD_TUI ${ZIBBY_ENABLE_TUI})
+set(USE_SQLCIPHER ${ZIBBY_USE_SQLCIPHER})
 
 include(GNUInstallDirs)
 
@@ -24,7 +38,6 @@ find_package(SQLite3 REQUIRED)
 find_package(Threads REQUIRED)
 
 set(ZIBBY_COMMON_SOURCES
-    src/core/service.cpp
     src/core/service.cpp
     src/core/config.cpp
     src/core/database.cpp
@@ -48,8 +61,15 @@ target_include_directories(zibby-service
 target_compile_definitions(zibby-service
     PRIVATE
         ZIBBY_VERSION="${PROJECT_VERSION}"
-    $<$<BOOL:${ZIBBY_USE_SQLCIPHER}>:ZIBBY_USE_SQLCIPHER>
+    $<$<BOOL:${USE_SQLCIPHER}>:ZIBBY_USE_SQLCIPHER>
 )
+
+if(USE_STATIC_LIBS)
+    set_target_properties(zibby-service PROPERTIES
+        LINK_SEARCH_START_STATIC ON
+        LINK_SEARCH_END_STATIC ON
+    )
+endif()
 
 if(MSVC)
     target_compile_options(zibby-service PRIVATE /W4 /permissive-)
@@ -76,11 +96,26 @@ install(TARGETS zibby-service
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
 
+install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/config/config.json.example
+    DESTINATION ${CMAKE_INSTALL_SYSCONFDIR}/zibby
+    RENAME config.json
+)
+
+if(UNIX AND NOT APPLE)
+    install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/config/zibby.service.example
+        DESTINATION ${CMAKE_INSTALL_LIBDIR}/systemd/user
+        RENAME zibby.service
+    )
+endif()
+
+install(DIRECTORY DESTINATION ${CMAKE_INSTALL_BINDIR}/plugins)
+
 set(CPACK_PACKAGE_NAME "zibby-service")
 set(CPACK_PACKAGE_VENDOR "Zibby")
 set(CPACK_PACKAGE_CONTACT "security@zibby.local")
 set(CPACK_PACKAGE_VERSION ${PROJECT_VERSION})
 set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Zibby decentralized IP messenger service")
+set(CPACK_PACKAGE_DIRECTORY "${CMAKE_SOURCE_DIR}/installers")
 set(CPACK_GENERATOR "TGZ;ZIP")
 
 if(UNIX AND NOT APPLE)
@@ -88,10 +123,29 @@ if(UNIX AND NOT APPLE)
 endif()
 
 if(WIN32)
-    list(APPEND CPACK_GENERATOR "NSIS;ZIP")
+    find_program(MAKENSIS_EXECUTABLE makensis)
+    if(MAKENSIS_EXECUTABLE)
+        list(APPEND CPACK_GENERATOR "NSIS")
+    else()
+        message(WARNING "NSIS (makensis) was not found. Skipping NSIS package generation.")
+    endif()
 endif()
 
 include(CPack)
+
+if(WIN32)
+    add_custom_target(generate_checksums
+        COMMAND powershell -ExecutionPolicy Bypass -File "${CMAKE_CURRENT_SOURCE_DIR}/scripts/generate_checksums.ps1" -ArtifactsDir "${CMAKE_SOURCE_DIR}/installers"
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        COMMENT "Generating SHA256 checksums for installer artifacts"
+    )
+else()
+    add_custom_target(generate_checksums
+        COMMAND bash "${CMAKE_CURRENT_SOURCE_DIR}/scripts/generate_checksums.sh" "${CMAKE_SOURCE_DIR}/installers"
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        COMMENT "Generating SHA256 checksums for installer artifacts"
+    )
+endif()
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/docs/doxygen/Doxyfile.in ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile @ONLY)
 
@@ -109,7 +163,7 @@ else()
     )
 endif()
 
-if(ZIBBY_ENABLE_TESTS)
+if(BUILD_TESTS)
     enable_testing()
     add_subdirectory(tests)
 endif()

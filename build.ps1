@@ -1,5 +1,6 @@
 param(
-    [switch]$InstallDeps
+    [switch]$InstallDeps,
+    [switch]$TestOnly
 )
 
 $ErrorActionPreference = "Stop"
@@ -38,12 +39,25 @@ Push-Location $buildDir
 
 cmake .. `
     -DCMAKE_BUILD_TYPE=$buildType `
-    -DZIBBY_ENABLE_TESTS=$(if ($enableTests) {"ON"} else {"OFF"}) `
-    -DZIBBY_ENABLE_CALLS=$(if ($enableCalls) {"ON"} else {"OFF"}) `
-    -DZIBBY_ENABLE_PLUGINS=$(if ($enablePlugins) {"ON"} else {"OFF"})
+    -DBUILD_TESTS=$(if ($enableTests) {"ON"} else {"OFF"}) `
+    -DBUILD_CALLS=$(if ($enableCalls) {"ON"} else {"OFF"}) `
+    -DBUILD_PLUGINS=$(if ($enablePlugins) {"ON"} else {"OFF"})
+
+if ($enableTests) {
+    cmake --build . --config $buildType --target zibby-service
+    ctest -C $buildType --output-on-failure
+}
+
+if ($TestOnly) {
+    Pop-Location
+    exit 0
+}
 
 cmake --build . --config $buildType
-ctest -C $buildType --output-on-failure
 cpack -C $buildType
+
+if (Test-Path (Join-Path $PSScriptRoot "scripts\generate_checksums.ps1")) {
+    & (Join-Path $PSScriptRoot "scripts\generate_checksums.ps1") -ArtifactsDir (Join-Path $PSScriptRoot "installers")
+}
 
 Pop-Location
