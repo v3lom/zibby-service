@@ -16,4 +16,10 @@
 	- `--peers`
 	- `--peer-add host:port:name`
 - Messenger TUI: `--tui`
-- API protocol: local JSON bridge (placeholder in `src/api`)
+- API:
+	- `--api-info` (prints `api_endpoint` and token)
+	- Localhost JSON API: first `auth.login`, then:
+		- `system.ping`
+		- `profile.get`, `profile.update`
+		- `message.send`, `message.edit`, `message.read`, `message.history`
+		- `peers.list`, `peers.discover`, `peers.add`

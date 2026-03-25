@@ -16,5 +16,12 @@
 	- `--peers`
 	- `--peer-add host:port:name`
 - TUI мессенджера: `--tui`
+- API:
+	- `--api-info` (показывает `api_endpoint` и токен)
+	- Подключение к localhost API: сначала `auth.login`, затем методы:
+		- `system.ping`
+		- `profile.get`, `profile.update`
+		- `message.send`, `message.edit`, `message.read`, `message.history`
+		- `peers.list`, `peers.discover`, `peers.add`
 - TUI: задел для следующих этапов
 - API: локальный JSON-протокол (заготовка в `src/api`)
