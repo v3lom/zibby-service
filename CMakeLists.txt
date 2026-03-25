@@ -50,6 +50,10 @@ set(ZIBBY_COMMON_SOURCES
     src/api/api_server.cpp
 )
 
+if(WIN32)
+    list(APPEND ZIBBY_COMMON_SOURCES src/platform/windows/zibby_service.rc)
+endif()
+
 add_executable(zibby-service
     src/core/main.cpp
     ${ZIBBY_COMMON_SOURCES}
@@ -112,6 +116,10 @@ if(UNIX AND NOT APPLE)
 endif()
 
 install(DIRECTORY DESTINATION ${CMAKE_INSTALL_BINDIR}/plugins)
+
+install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/assets/zibby-icon.ico
+    DESTINATION ${CMAKE_INSTALL_DATADIR}/zibby
+)
 
 set(CPACK_PACKAGE_NAME "zibby-service")
 set(CPACK_PACKAGE_VENDOR "Zibby")

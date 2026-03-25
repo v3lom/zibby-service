@@ -56,3 +56,39 @@ add_test(
     NAME zibby_profile_peer_test
     COMMAND $<TARGET_FILE:zibby_profile_peer_test>
 )
+
+add_executable(zibby_api_server_test
+    unit/api_server_test.cpp
+    ${CMAKE_SOURCE_DIR}/src/api/api_server.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/database.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/message.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/profile.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/crypto.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/network.cpp
+)
+
+target_include_directories(zibby_api_server_test
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/src
+        ${CMAKE_SOURCE_DIR}/include
+)
+
+target_compile_definitions(zibby_api_server_test
+    PRIVATE
+        ZIBBY_VERSION="test"
+)
+
+target_link_libraries(zibby_api_server_test
+    PRIVATE
+        Boost::filesystem
+        Boost::system
+        OpenSSL::SSL
+        OpenSSL::Crypto
+        SQLite3::SQLite3
+        Threads::Threads
+)
+
+add_test(
+    NAME zibby_api_server_test
+    COMMAND $<TARGET_FILE:zibby_api_server_test>
+)
