@@ -1,14 +1,14 @@
 #pragma once
 
-#include "core/crypto.h"
-#include "core/database.h"
-
 #include <cstdint>
 #include <optional>
 #include <string>
 #include <vector>
 
 namespace zibby::core {
+
+class Database;
+class Crypto;
 
 /**
  * @brief Базовая модель сообщения в сервисе.

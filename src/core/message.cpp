@@ -1,6 +1,10 @@
 #include "core/message.h"
 
+#include "core/crypto.h"
+#include "core/database.h"
+
 #include <algorithm>
+#include <cctype>
 
 namespace zibby::core {
 
