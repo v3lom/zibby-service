@@ -120,7 +120,11 @@ int main(int argc, char* argv[]) {
             std::cerr << "Cache cleanup failed: " << ec.message() << '\n';
             return 1;
         }
-        fs::create_directories(config.cacheDir);
+        fs::create_directories(config.cacheDir, ec);
+        if (ec) {
+            std::cerr << "Cache directory recreation failed: " << ec.message() << '\n';
+            return 1;
+        }
         std::cout << "Cache cleaned: " << removed << " entries removed from " << config.cacheDir << '\n';
         return 0;
     }
@@ -274,7 +278,7 @@ int main(int argc, char* argv[]) {
 
     if (variables.count("tui") > 0) {
         zibby::cli::Tui tui;
-        return tui.run(messageService, profileService, database, config.listenPort);
+        return tui.run(messageService, profileService, database, config);
     }
 
     zibby::core::Service service(config);

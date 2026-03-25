@@ -4,6 +4,7 @@
 #include "core/message.h"
 #include "core/network.h"
 #include "core/profile.h"
+#include "core/config.h"
 
 #include <boost/asio/ip/host_name.hpp>
 #include <boost/filesystem.hpp>
@@ -14,7 +15,11 @@
 
 namespace zibby::cli {
 
-int Tui::run(zibby::core::MessageService& messageService, zibby::core::ProfileService& profileService, zibby::core::Database& database, int listenPort) {
+int Tui::run(
+    zibby::core::MessageService& messageService,
+    zibby::core::ProfileService& profileService,
+    zibby::core::Database& database,
+    const zibby::core::Config& config) {
     namespace fs = boost::filesystem;
 
     while (true) {
@@ -88,7 +93,7 @@ int Tui::run(zibby::core::MessageService& messageService, zibby::core::ProfileSe
         }
 
         if (choice == "4") {
-            const auto peers = zibby::core::Network::discoverPeers(listenPort, 1200);
+            const auto peers = zibby::core::Network::discoverPeers(config.listenPort, 1200);
             for (const auto& peer : peers) {
                 database.upsertPeer(peer);
             }
@@ -105,7 +110,7 @@ int Tui::run(zibby::core::MessageService& messageService, zibby::core::ProfileSe
         }
 
         if (choice == "6") {
-            const auto cacheDir = fs::temp_directory_path() / "zibby-cache";
+            const fs::path cacheDir(config.cacheDir);
             boost::system::error_code ec;
             std::uintmax_t removedCount = 0;
             if (fs::exists(cacheDir, ec)) {
