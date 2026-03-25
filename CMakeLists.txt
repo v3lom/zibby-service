@@ -43,7 +43,9 @@ set(ZIBBY_COMMON_SOURCES
     src/core/database.cpp
     src/core/crypto.cpp
     src/core/message.cpp
+    src/core/profile.cpp
     src/core/network.cpp
+    src/cli/tui.cpp
     src/utils/logger.cpp
     src/api/api_server.cpp
 )

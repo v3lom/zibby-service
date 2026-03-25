@@ -33,3 +33,26 @@ add_test(
     NAME zibby_message_flow_test
     COMMAND $<TARGET_FILE:zibby_message_flow_test>
 )
+
+add_executable(zibby_profile_peer_test
+    unit/profile_peer_test.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/database.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/profile.cpp
+)
+
+target_include_directories(zibby_profile_peer_test
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/src
+        ${CMAKE_SOURCE_DIR}/include
+)
+
+target_link_libraries(zibby_profile_peer_test
+    PRIVATE
+        SQLite3::SQLite3
+        Boost::filesystem
+)
+
+add_test(
+    NAME zibby_profile_peer_test
+    COMMAND $<TARGET_FILE:zibby_profile_peer_test>
+)
