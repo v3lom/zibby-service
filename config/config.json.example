@@ -1,0 +1,42 @@
+{
+  "version": 1,
+  "user": {
+    "name": "",
+    "avatar": "",
+    "bio": "",
+    "birth_date": "",
+    "status": "active"
+  },
+  "network": {
+    "listen_port": 9876,
+    "control_port": 9877,
+    "multicast_group": "239.0.0.1",
+    "multicast_port": 9876,
+    "broadcast_interval": 30,
+    "interfaces": [],
+    "extra_peers": []
+  },
+  "storage": {
+    "data_dir": "",
+    "cache_dir": "",
+    "download_dir": "",
+    "max_cache_size_mb": 1024
+  },
+  "crypto": {
+    "algorithm": "aes-256-gcm",
+    "key_length": 32
+  },
+  "logging": {
+    "level": "info",
+    "file": "zibby.log",
+    "max_size_mb": 10,
+    "max_files": 5
+  },
+  "updates": {
+    "enabled": true,
+    "repo_url": "https://github.com/v3lom/zibby-service",
+    "check_interval_hours": 24
+  },
+  "autostart": true,
+  "performance_mode": "balanced"
+}
