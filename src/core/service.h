@@ -2,6 +2,8 @@
 
 #include "core/config.h"
 
+#include <string>
+
 namespace zibby::core {
 
 class Service {
@@ -10,6 +12,8 @@ public:
 
     int run(bool daemonMode);
     bool pingRunningInstance() const;
+    std::string apiToken() const;
+    std::string apiEndpoint() const;
 
 private:
     Config config_;

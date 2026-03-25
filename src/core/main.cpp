@@ -22,6 +22,7 @@ int main(int argc, char* argv[]) {
         ("daemon,d", "Run as daemon/background service")
         ("cli,c", "Connect CLI to running service")
         ("version,v", "Show version")
+        ("api-info", "Show local API endpoint and token")
         ("send", "Send text message")
         ("edit", "Edit message by id")
         ("read", "Mark message as read by id")
@@ -230,6 +231,13 @@ int main(int argc, char* argv[]) {
     }
 
     zibby::core::Service service(config);
+
+    if (variables.count("api-info") > 0) {
+        std::cout << "api_endpoint=" << service.apiEndpoint() << '\n';
+        const auto token = service.apiToken();
+        std::cout << "api_token=" << (token.empty() ? "<not-generated-yet-start-service-first>" : token) << '\n';
+        return 0;
+    }
 
     if (variables.count("cli") > 0) {
         if (service.pingRunningInstance()) {

@@ -1,18 +1,60 @@
 #include "core/service.h"
 
+#include "api/api_server.h"
 #include "core/crypto.h"
 #include "core/database.h"
+#include "core/message.h"
 #include "core/network.h"
+#include "core/profile.h"
 #include "utils/logger.h"
 
 #include <boost/asio.hpp>
+#include <boost/asio/ip/host_name.hpp>
 #include <boost/filesystem.hpp>
+#include <fstream>
+#include <iomanip>
 #include <memory>
+#include <random>
+#include <sstream>
 #include <string>
 
 namespace fs = boost::filesystem;
 
 namespace zibby::core {
+
+namespace {
+
+std::string randomHexToken(std::size_t byteCount = 32) {
+    std::random_device device;
+    std::mt19937 generator(device());
+    std::uniform_int_distribution<int> distribution(0, 255);
+
+    std::ostringstream out;
+    for (std::size_t index = 0; index < byteCount; ++index) {
+        out << std::hex << std::setw(2) << std::setfill('0') << distribution(generator);
+    }
+    return out.str();
+}
+
+std::string loadOrCreateApiToken(const std::string& dataDir) {
+    const fs::path tokenPath = fs::path(dataDir) / "api_token.txt";
+
+    if (fs::exists(tokenPath)) {
+        std::ifstream input(tokenPath.string());
+        std::string token;
+        std::getline(input, token);
+        if (!token.empty()) {
+            return token;
+        }
+    }
+
+    const auto token = randomHexToken();
+    std::ofstream output(tokenPath.string(), std::ios::trunc);
+    output << token;
+    return token;
+}
+
+} // namespace
 
 Service::Service(Config config)
     : config_(std::move(config)) {}
@@ -40,9 +82,23 @@ int Service::run(bool daemonMode) {
         return 3;
     }
 
+    const std::string storageSecret = config_.dataDir + ":zibby-storage-secret";
+    MessageService messageService(database, crypto, storageSecret);
+    ProfileService profileService(database);
+    profileService.ensureLocalProfile(boost::asio::ip::host_name());
+
     boost::asio::io_context ioContext;
     Network network(ioContext, config_.listenPort);
     network.start();
+
+    const std::string apiToken = loadOrCreateApiToken(config_.dataDir);
+    ApiServer apiServer(ioContext, database, messageService, profileService, config_.listenPort);
+    const std::string apiEndpoint = "127.0.0.1:" + std::to_string(config_.apiPort);
+    if (!apiServer.start(apiEndpoint, apiToken)) {
+        zibby::utils::Logger::instance().log(zibby::utils::LogLevel::Error, "API server start failed on " + apiEndpoint);
+        return 4;
+    }
+    zibby::utils::Logger::instance().log(zibby::utils::LogLevel::Info, "API server listening on " + apiEndpoint);
 
     boost::asio::ip::tcp::acceptor controlAcceptor(
         ioContext,
@@ -78,6 +134,7 @@ int Service::run(bool daemonMode) {
     });
 
     ioContext.run();
+    apiServer.stop();
     return 0;
 }
 
@@ -102,6 +159,22 @@ bool Service::pingRunningInstance() const {
     } catch (...) {
         return false;
     }
+}
+
+std::string Service::apiToken() const {
+    const fs::path tokenPath = fs::path(config_.dataDir) / "api_token.txt";
+    if (!fs::exists(tokenPath)) {
+        return {};
+    }
+
+    std::ifstream input(tokenPath.string());
+    std::string token;
+    std::getline(input, token);
+    return token;
+}
+
+std::string Service::apiEndpoint() const {
+    return "127.0.0.1:" + std::to_string(config_.apiPort);
 }
 
 } // namespace zibby::core
