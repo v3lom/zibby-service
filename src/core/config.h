@@ -7,6 +7,7 @@ namespace zibby::core {
 struct Config {
     int listenPort = 9876;
     int controlPort = 9877;
+    int apiPort = 9888;
     int multicastPort = 9876;
     std::string multicastGroup = "239.0.0.1";
     std::string logFile = "zibby.log";
