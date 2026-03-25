@@ -60,9 +60,13 @@ target_link_libraries(zibby-service
         Boost::program_options
         OpenSSL::SSL
         OpenSSL::Crypto
-        SQLite::SQLite3
+        SQLite3::SQLite3
     Threads::Threads
 )
+
+if(WIN32)
+    target_link_libraries(zibby-service PRIVATE ws2_32 mswsock)
+endif()
 
 install(TARGETS zibby-service
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
