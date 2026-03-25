@@ -27,6 +27,7 @@ void writeDefaultConfig(const fs::path& path) {
   },
   "network": {
     "listen_port": 9876,
+    "control_port": 9877,
     "multicast_group": "239.0.0.1",
     "multicast_port": 9876,
     "broadcast_interval": 30,
@@ -105,6 +106,7 @@ Config ConfigManager::loadOrCreate() {
     pt::read_json(config.configPath, tree);
 
     config.listenPort = tree.get<int>("network.listen_port", 9876);
+    config.controlPort = tree.get<int>("network.control_port", config.listenPort + 1);
     config.multicastPort = tree.get<int>("network.multicast_port", 9876);
     config.multicastGroup = tree.get<std::string>("network.multicast_group", "239.0.0.1");
     config.logFile = tree.get<std::string>("logging.file", "zibby.log");

@@ -10,15 +10,17 @@ option(ZIBBY_ENABLE_TESTS "Build tests" ON)
 option(ZIBBY_ENABLE_PLUGINS "Enable plugin system" ON)
 option(ZIBBY_ENABLE_CALLS "Enable calls module" OFF)
 option(ZIBBY_ENABLE_TUI "Enable TUI module" ON)
+option(ZIBBY_USE_SQLCIPHER "Use SQLCipher-compatible SQLite build" OFF)
 
 include(GNUInstallDirs)
 
 find_package(Boost 1.70 REQUIRED COMPONENTS filesystem system program_options)
 find_package(OpenSSL REQUIRED)
-
 find_package(SQLite3 REQUIRED)
+find_package(Threads REQUIRED)
 
 set(ZIBBY_COMMON_SOURCES
+    src/core/service.cpp
     src/core/service.cpp
     src/core/config.cpp
     src/core/database.cpp
@@ -42,6 +44,7 @@ target_include_directories(zibby-service
 target_compile_definitions(zibby-service
     PRIVATE
         ZIBBY_VERSION="${PROJECT_VERSION}"
+    $<$<BOOL:${ZIBBY_USE_SQLCIPHER}>:ZIBBY_USE_SQLCIPHER>
 )
 
 if(MSVC)
@@ -58,6 +61,7 @@ target_link_libraries(zibby-service
         OpenSSL::SSL
         OpenSSL::Crypto
         SQLite::SQLite3
+    Threads::Threads
 )
 
 install(TARGETS zibby-service
@@ -66,16 +70,17 @@ install(TARGETS zibby-service
 
 set(CPACK_PACKAGE_NAME "zibby-service")
 set(CPACK_PACKAGE_VENDOR "Zibby")
-set(CPACK_PACKAGE_CONTACT "maintainers@zibby.local")
+set(CPACK_PACKAGE_CONTACT "security@zibby.local")
 set(CPACK_PACKAGE_VERSION ${PROJECT_VERSION})
-set(CPACK_GENERATOR "ZIP;TGZ")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Zibby decentralized IP messenger service")
+set(CPACK_GENERATOR "TGZ;ZIP")
 
 if(UNIX AND NOT APPLE)
     list(APPEND CPACK_GENERATOR "DEB;RPM")
 endif()
 
 if(WIN32)
-    list(APPEND CPACK_GENERATOR "NSIS")
+    list(APPEND CPACK_GENERATOR "NSIS;ZIP")
 endif()
 
 include(CPack)

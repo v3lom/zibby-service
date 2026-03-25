@@ -1,5 +1,6 @@
 #include "utils/logger.h"
 
+#include <boost/filesystem.hpp>
 #include <chrono>
 #include <iomanip>
 #include <iostream>
@@ -29,6 +30,10 @@ Logger& Logger::instance() {
 
 bool Logger::initialize(const std::string& logPath) {
     std::lock_guard<std::mutex> lock(mutex_);
+    const boost::filesystem::path path(logPath);
+    if (!path.parent_path().empty()) {
+        boost::filesystem::create_directories(path.parent_path());
+    }
     stream_.open(logPath, std::ios::app);
     return stream_.is_open();
 }
