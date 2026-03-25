@@ -10,6 +10,18 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+function Invoke-External {
+    param(
+        [Parameter(Mandatory = $true)][string]$FilePath,
+        [Parameter(Mandatory = $true)][string[]]$Arguments
+    )
+
+    & $FilePath @Arguments
+    if ($LASTEXITCODE -ne 0) {
+        throw "Command failed ($LASTEXITCODE): $FilePath $($Arguments -join ' ')"
+    }
+}
+
 function Show-Menu {
     Write-Host "Select build type:"
     Write-Host "1) Debug"
@@ -51,22 +63,37 @@ Push-Location $buildDir
 
 Write-Host "Configuring with BuildType=$buildType, Tests=$enableTests, Calls=$enableCalls, Plugins=$enablePlugins"
 
-cmake .. `
-    -G "Ninja" `
-    -DCMAKE_BUILD_TYPE=$buildType `
-    -DBUILD_TESTS=$(if ($enableTests) {"ON"} else {"OFF"}) `
-    -DBUILD_CALLS=$(if ($enableCalls) {"ON"} else {"OFF"}) `
-    -DBUILD_PLUGINS=$(if ($enablePlugins) {"ON"} else {"OFF"})
+$testsFlag = if ($enableTests) { "ON" } else { "OFF" }
+$callsFlag = if ($enableCalls) { "ON" } else { "OFF" }
+$pluginsFlag = if ($enablePlugins) { "ON" } else { "OFF" }
+
+$cmakeConfigureArgs = @(
+    "..",
+    "-DCMAKE_BUILD_TYPE=$buildType",
+    "-DZIBBY_ENABLE_TESTS=$testsFlag",
+    "-DZIBBY_ENABLE_CALLS=$callsFlag",
+    "-DZIBBY_ENABLE_PLUGINS=$pluginsFlag"
+)
+
+# Prefer Ninja if available; otherwise fall back to CMake default generator.
+if (Get-Command ninja -ErrorAction SilentlyContinue) {
+    $cmakeConfigureArgs = @("-G", "Ninja") + $cmakeConfigureArgs
+}
+
+Invoke-External -FilePath "cmake" -Arguments $cmakeConfigureArgs
+
+Invoke-External -FilePath "cmake" -Arguments @("--build", ".", "--config", $buildType)
+
+if ($enableTests) {
+    Invoke-External -FilePath "ctest" -Arguments @("-C", $buildType, "--output-on-failure")
+}
 
 if ($TestOnly) {
-    cmake --build . --config $buildType --target zibby-service-tests
-    ctest -C $buildType --output-on-failure
     Pop-Location
     exit 0
 }
 
-cmake --build . --config $buildType
-cpack -C $buildType
+Invoke-External -FilePath "cpack" -Arguments @("-C", $buildType)
 
 if (Test-Path (Join-Path $PSScriptRoot "scripts\generate_checksums.ps1")) {
     & (Join-Path $PSScriptRoot "scripts\generate_checksums.ps1") -ArtifactsDir (Join-Path $PSScriptRoot "installers")

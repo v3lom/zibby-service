@@ -6,6 +6,8 @@
 #include "core/profile.h"
 #include "core/service.h"
 
+#include "version.h"
+
 #include "cli/tui.h"
 
 #include <boost/program_options.hpp>
