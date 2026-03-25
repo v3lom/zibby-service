@@ -92,7 +92,7 @@ int Service::run(bool daemonMode) {
     network.start();
 
     const std::string apiToken = loadOrCreateApiToken(config_.dataDir);
-    ApiServer apiServer(ioContext, database, messageService, profileService, config_.listenPort);
+    zibby::api::ApiServer apiServer(ioContext, database, messageService, profileService, config_.listenPort);
     const std::string apiEndpoint = "127.0.0.1:" + std::to_string(config_.apiPort);
     if (!apiServer.start(apiEndpoint, apiToken)) {
         zibby::utils::Logger::instance().log(zibby::utils::LogLevel::Error, "API server start failed on " + apiEndpoint);
