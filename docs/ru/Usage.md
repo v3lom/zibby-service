@@ -15,6 +15,9 @@
 	- `--discover --discover-timeout 1200`
 	- `--peers`
 	- `--peer-add host:port:name`
+- Локальные пути/кеш:
+	- `--paths`
+	- `--clear-cache`
 - TUI мессенджера: `--tui`
 - API:
 	- `--api-info` (показывает `api_endpoint` и токен)

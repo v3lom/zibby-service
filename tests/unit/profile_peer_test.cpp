@@ -1,5 +1,6 @@
 #include "core/database.h"
 #include "core/peer.h"
+#include "core/config.h"
 #include "core/profile.h"
 
 #include <boost/filesystem.hpp>
@@ -14,6 +15,14 @@ int main() {
     const fs::path dbPath = baseDir / "profile.sqlite3";
 
     {
+        const auto dataDir = zibby::core::ConfigManager::defaultDataDir();
+        const auto cacheDir = zibby::core::ConfigManager::defaultCacheDir();
+        const auto downloadDir = zibby::core::ConfigManager::defaultDownloadDir();
+        if (dataDir.empty() || cacheDir.empty() || downloadDir.empty()) {
+            std::cerr << "default paths must not be empty" << std::endl;
+            return EXIT_FAILURE;
+        }
+
         zibby::core::Database database;
         if (!database.initialize(dbPath.string())) {
             std::cerr << "database.initialize failed" << std::endl;

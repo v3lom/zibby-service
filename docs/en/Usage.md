@@ -15,6 +15,9 @@
 	- `--discover --discover-timeout 1200`
 	- `--peers`
 	- `--peer-add host:port:name`
+- Local paths/cache:
+	- `--paths`
+	- `--clear-cache`
 - Messenger TUI: `--tui`
 - API:
 	- `--api-info` (prints `api_endpoint` and token)

@@ -37,6 +37,7 @@ add_test(
 add_executable(zibby_profile_peer_test
     unit/profile_peer_test.cpp
     ${CMAKE_SOURCE_DIR}/src/core/database.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/config.cpp
     ${CMAKE_SOURCE_DIR}/src/core/profile.cpp
 )
 
