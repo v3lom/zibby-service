@@ -4,15 +4,24 @@
 #include "core/message.h"
 #include "core/network.h"
 #include "core/profile.h"
+#include "core/config.h"
 
 #include <boost/asio/ip/host_name.hpp>
+#include <boost/filesystem.hpp>
 
+#include <fstream>
 #include <iostream>
 #include <string>
 
 namespace zibby::cli {
 
-int Tui::run(zibby::core::MessageService& messageService, zibby::core::ProfileService& profileService, zibby::core::Database& database, int listenPort) {
+int Tui::run(
+    zibby::core::MessageService& messageService,
+    zibby::core::ProfileService& profileService,
+    zibby::core::Database& database,
+    const zibby::core::Config& config) {
+    namespace fs = boost::filesystem;
+
     while (true) {
         std::cout << "\n=== Zibby TUI ===\n";
         std::cout << "1) Профиль\n";
@@ -20,6 +29,8 @@ int Tui::run(zibby::core::MessageService& messageService, zibby::core::ProfileSe
         std::cout << "3) История чата\n";
         std::cout << "4) Поиск клиентов\n";
         std::cout << "5) Список клиентов\n";
+        std::cout << "6) Очистка кеша\n";
+        std::cout << "7) Неподдерживаемые действия (звонки/файлы)\n";
         std::cout << "0) Выход\n";
         std::cout << "> ";
 
@@ -82,7 +93,7 @@ int Tui::run(zibby::core::MessageService& messageService, zibby::core::ProfileSe
         }
 
         if (choice == "4") {
-            const auto peers = zibby::core::Network::discoverPeers(listenPort, 1200);
+            const auto peers = zibby::core::Network::discoverPeers(config.listenPort, 1200);
             for (const auto& peer : peers) {
                 database.upsertPeer(peer);
             }
@@ -95,6 +106,27 @@ int Tui::run(zibby::core::MessageService& messageService, zibby::core::ProfileSe
             for (const auto& peer : peers) {
                 std::cout << peer.peerId << " | " << peer.displayName << " | " << peer.host << ":" << peer.port << " | " << peer.version << "\n";
             }
+            continue;
+        }
+
+        if (choice == "6") {
+            const fs::path cacheDir(config.cacheDir);
+            boost::system::error_code ec;
+            std::uintmax_t removedCount = 0;
+            if (fs::exists(cacheDir, ec)) {
+                removedCount = fs::remove_all(cacheDir, ec);
+            }
+            if (ec) {
+                std::cout << "Ошибка очистки кеша: " << ec.message() << "\n";
+            } else {
+                std::cout << "Кеш очищен. Удалено объектов: " << removedCount << "\n";
+            }
+            continue;
+        }
+
+        if (choice == "7") {
+            std::cout << "Звонки, голосовые сообщения и передача файлов пока не поддерживаются в CLI/TUI.\n";
+            std::cout << "Используйте внешний фронтенд через локальный API.\n";
             continue;
         }
     }

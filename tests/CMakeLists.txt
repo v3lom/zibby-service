@@ -25,8 +25,8 @@ target_link_libraries(zibby_message_flow_test
     PRIVATE
         OpenSSL::SSL
         OpenSSL::Crypto
-        SQLite3::SQLite3
-        Boost::filesystem
+        ${ZIBBY_SQLITE_LIB}
+        ${ZIBBY_BOOST_LIBS}
 )
 
 add_test(
@@ -37,6 +37,7 @@ add_test(
 add_executable(zibby_profile_peer_test
     unit/profile_peer_test.cpp
     ${CMAKE_SOURCE_DIR}/src/core/database.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/config.cpp
     ${CMAKE_SOURCE_DIR}/src/core/profile.cpp
 )
 
@@ -48,8 +49,8 @@ target_include_directories(zibby_profile_peer_test
 
 target_link_libraries(zibby_profile_peer_test
     PRIVATE
-        SQLite3::SQLite3
-        Boost::filesystem
+        ${ZIBBY_SQLITE_LIB}
+        ${ZIBBY_BOOST_LIBS}
 )
 
 add_test(
@@ -81,11 +82,10 @@ target_compile_definitions(zibby_api_server_test
 
 target_link_libraries(zibby_api_server_test
     PRIVATE
-        Boost::filesystem
-        Boost::system
+        ${ZIBBY_BOOST_LIBS}
         OpenSSL::SSL
         OpenSSL::Crypto
-        SQLite3::SQLite3
+        ${ZIBBY_SQLITE_LIB}
         Threads::Threads
 )
 
