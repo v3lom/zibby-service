@@ -230,14 +230,14 @@ if(WIN32)
     # If the installer is not elevated, these commands will fail harmlessly.
     set(CPACK_NSIS_EXTRA_INSTALL_COMMANDS [[
         ; Try to install/start service (requires Administrator)
-        ExecWait '"$INSTDIR\\bin\\zibby-service.exe" --install-service'
-        ExecWait '"$INSTDIR\\bin\\zibby-service.exe" --start-service'
+        ExecWait '"$INSTDIR\bin\zibby-service.exe" --install-service'
+        ExecWait '"$INSTDIR\bin\zibby-service.exe" --start-service'
     ]])
 
     set(CPACK_NSIS_EXTRA_UNINSTALL_COMMANDS [[
         ; Try to stop/uninstall service (ignore failures)
-        ExecWait '"$INSTDIR\\bin\\zibby-service.exe" --stop-service'
-        ExecWait '"$INSTDIR\\bin\\zibby-service.exe" --uninstall-service'
+        ExecWait '"$INSTDIR\bin\zibby-service.exe" --stop-service'
+        ExecWait '"$INSTDIR\bin\zibby-service.exe" --uninstall-service'
     ]])
 endif()
 
