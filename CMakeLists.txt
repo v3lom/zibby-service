@@ -106,6 +106,9 @@ if(WIN32 AND ZIBBY_ENABLE_PANEL)
 
     find_package(Qt6 QUIET COMPONENTS Widgets Network)
     if(Qt6_FOUND)
+        # Enable Qt meta-object compilation for Q_OBJECT classes.
+        set(CMAKE_AUTOMOC ON)
+
         configure_file(
             "${CMAKE_SOURCE_DIR}/src/platform/windows/zibby_panel.rc.in"
             "${PROJECT_BINARY_DIR}/zibby_panel.rc"
@@ -114,11 +117,17 @@ if(WIN32 AND ZIBBY_ENABLE_PANEL)
 
         add_executable(zibby-panel WIN32
             src/panel/main.cpp
+            src/panel/main_window.h
             src/panel/main_window.cpp
+            src/panel/api_client.h
             src/panel/api_client.cpp
             src/core/config.cpp
             src/core/update_checker.cpp
             "${PROJECT_BINARY_DIR}/zibby_panel.rc"
+        )
+
+        set_target_properties(zibby-panel PROPERTIES
+            AUTOMOC ON
         )
 
         target_include_directories(zibby-panel
@@ -230,14 +239,14 @@ if(WIN32)
     # If the installer is not elevated, these commands will fail harmlessly.
     set(CPACK_NSIS_EXTRA_INSTALL_COMMANDS [[
         ; Try to install/start service (requires Administrator)
-        ExecWait '"$INSTDIR\bin\zibby-service.exe" --install-service'
-        ExecWait '"$INSTDIR\bin\zibby-service.exe" --start-service'
+        ExecWait '"$INSTDIR\\bin\\zibby-service.exe" --install-service'
+        ExecWait '"$INSTDIR\\bin\\zibby-service.exe" --start-service'
     ]])
 
     set(CPACK_NSIS_EXTRA_UNINSTALL_COMMANDS [[
         ; Try to stop/uninstall service (ignore failures)
-        ExecWait '"$INSTDIR\bin\zibby-service.exe" --stop-service'
-        ExecWait '"$INSTDIR\bin\zibby-service.exe" --uninstall-service'
+        ExecWait '"$INSTDIR\\bin\\zibby-service.exe" --stop-service'
+        ExecWait '"$INSTDIR\\bin\\zibby-service.exe" --uninstall-service'
     ]])
 endif()
 

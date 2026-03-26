@@ -22,6 +22,7 @@
 #include <QPlainTextEdit>
 #include <QProcess>
 #include <QPushButton>
+#include <QSystemTrayIcon>
 #include <QTabWidget>
 #include <QTimer>
 #include <QUrl>
@@ -93,9 +94,9 @@ QIcon resolveAppIcon(const QString& exeDir) {
 MainWindow::MainWindow(QWidget* parent)
     : QMainWindow(parent), api_(new ApiClient(this)) {
     setWindowTitle("zibby-service (beta panel)");
-    setWindowIcon(resolveAppIcon(::exeDir()));
+    setWindowIcon(resolveAppIcon(exeDir()));
 
-    exeDir_ = ::exeDir();
+    exeDir_ = exeDir();
 
     auto* tabs = new QTabWidget(this);
     setCentralWidget(tabs);
