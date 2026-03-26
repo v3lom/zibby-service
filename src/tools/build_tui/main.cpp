@@ -1091,13 +1091,83 @@ bool spawnProcessDetached(const fs::path& exe, const std::vector<std::string>& a
 }
 #endif
 
+CliOptions parseArgs(int argc, char** argv) {
+    CliOptions opt;
+    for (int i = 1; i < argc; ++i) {
+        const std::string a = argv[i] ? std::string(argv[i]) : std::string();
+        if (a == "--help" || a == "-h") {
+            opt.help = true;
+        } else if (a == "--version") {
+            opt.version = true;
+        } else if (a == "--check") {
+            opt.check = true;
+        } else if (a == "--install-deps" || a == "--deps") {
+            opt.installDeps = true;
+        } else if (a == "--deps-admin" || a == "--install-deps-admin") {
+            opt.installDeps = true;
+            opt.installDepsSystem = true;
+        } else if (a == "--no-ansi") {
+            opt.noAnsi = true;
+        } else if (a == "--ascii") {
+            opt.forceAscii = true;
+        }
+    }
+    return opt;
+}
+
+void printHelp() {
+    std::cout
+        << "zibby-build-tui options:\n"
+        << "  --help, -h                Show this help\n"
+        << "  --version                 Print project version (from CMakeLists.txt)\n"
+        << "  --check                   Print environment diagnostics and exit\n"
+        << "  --install-deps, --deps     Install dependencies and exit\n"
+        << "  --deps-admin               Windows: install deps as admin (C:/msys64)\n"
+        << "  --no-ansi                  Disable ANSI output\n"
+        << "  --ascii                    Force ASCII glyphs\n";
+}
+
+int runCheck(const fs::path& root) {
+    const std::string version = detectVersionFromCMake(root);
+    std::cout << "root: " << root.string() << "\n";
+    std::cout << "version: " << (version.empty() ? "(unknown)" : version) << "\n";
+    std::cout << "tty(stdin/stdout): " << (isTtyStdin() ? "yes" : "no") << "/" << (isTtyStdout() ? "yes" : "no") << "\n";
+    std::cout << "git: " << (commandExists("git") ? "yes" : "no") << "\n";
+    std::cout << "cmake: " << (commandExists("cmake") ? "yes" : "no") << "\n";
+    std::cout << "ninja: " << (commandExists("ninja") ? "yes" : "no") << "\n";
+    const auto inside = commandExists("git")
+        ? execRead("git -C " + shellQuote(root.string()) + " rev-parse --is-inside-work-tree " + stderrToNull())
+        : std::string();
+    std::cout << "git repo: " << ((inside.find("true") != std::string::npos) ? "yes" : "no") << "\n";
+    return commandExists("cmake") ? 0 : 1;
+}
+
 } // namespace
 
 int main(int argc, char** argv) {
-    (void)argc;
-    (void)argv;
+    const CliOptions opt = parseArgs(argc, argv);
     const fs::path start = fs::current_path();
     const fs::path root = findRepoRoot(start);
+
+    if (opt.help) {
+        printHelp();
+        return 0;
+    }
+
+    if (opt.version) {
+        const std::string version = detectVersionFromCMake(root);
+        std::cout << (version.empty() ? "0.0.0" : version) << std::endl;
+        return 0;
+    }
+
+    if (opt.check) {
+        return runCheck(root);
+    }
+
+    if (opt.installDeps) {
+        const bool ok = runInstallDeps(root, opt.installDepsSystem);
+        return ok ? 0 : 1;
+    }
 
 #ifdef _WIN32
     const bool vtOk = enableVirtualTerminal();
@@ -1106,6 +1176,9 @@ int main(int argc, char** argv) {
 
     Ansi ansi;
     ansi.enabled = isTtyStdout();
+    if (opt.noAnsi) {
+        ansi.enabled = false;
+    }
 
     Glyphs glyphs;
 #ifdef _WIN32
@@ -1113,8 +1186,8 @@ int main(int argc, char** argv) {
 #else
     const bool unicodeOk = true;
 #endif
-    const char* forceAscii = std::getenv("ZIBBY_TUI_FORCE_ASCII");
-    glyphs.unicode = unicodeOk && !(forceAscii != nullptr && *forceAscii != '\0');
+    const char* forceAsciiEnv = std::getenv("ZIBBY_TUI_FORCE_ASCII");
+    glyphs.unicode = unicodeOk && !opt.forceAscii && !(forceAsciiEnv != nullptr && *forceAsciiEnv != '\0');
     glyphs.rule = glyphs.unicode ? "─" : "-";
     glyphs.ellipsis = glyphs.unicode ? "…" : "...";
 
