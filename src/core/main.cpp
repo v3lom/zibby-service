@@ -40,23 +40,6 @@
 #ifdef _WIN32
 namespace {
 
-#ifndef ZIBBY_HAS_PANEL
-std::string exeDir() {
-    char buffer[MAX_PATH] = {0};
-    const DWORD len = GetModuleFileNameA(nullptr, buffer, MAX_PATH);
-    if (len == 0 || len >= MAX_PATH) {
-        return {};
-    }
-
-    std::string path(buffer, buffer + len);
-    const auto pos = path.find_last_of("\\/");
-    if (pos == std::string::npos) {
-        return {};
-    }
-    return path.substr(0, pos);
-}
-#endif
-
 void hideConsoleWindow() {
     HWND hwnd = GetConsoleWindow();
     if (hwnd != nullptr) {
@@ -98,57 +81,6 @@ bool spawnDetachedSelf(const std::string& args) {
     return true;
 }
 
-#ifndef ZIBBY_HAS_PANEL
-std::string findInstallerExe(const std::string& baseDir) {
-    namespace fs = boost::filesystem;
-    std::vector<fs::path> roots;
-    roots.push_back(fs::path(baseDir) / "installers");
-    roots.push_back(fs::path(baseDir) / ".." / "installers");
-
-    fs::path best;
-    std::time_t bestTime = 0;
-
-    for (const auto& root : roots) {
-        boost::system::error_code ec;
-        if (!fs::exists(root, ec) || !fs::is_directory(root, ec)) {
-            continue;
-        }
-        for (fs::directory_iterator it(root, ec); !ec && it != fs::directory_iterator(); ++it) {
-            const auto p = it->path();
-            if (!fs::is_regular_file(p, ec)) {
-                continue;
-            }
-            if (p.extension().string() != ".exe") {
-                continue;
-            }
-            const auto name = p.filename().string();
-            if (name.find("zibby") == std::string::npos) {
-                continue;
-            }
-            const auto t = fs::last_write_time(p, ec);
-            if (!ec && (best.empty() || t > bestTime)) {
-                best = p;
-                bestTime = t;
-            }
-        }
-    }
-
-    return best.empty() ? std::string{} : best.string();
-}
-
-void offerRunInstaller(const std::string& installerPath) {
-    const int res = MessageBoxA(
-        nullptr,
-        "zibby-service is not installed or GUI panel is missing.\n\nRun installer now?",
-        "zibby-service",
-        MB_YESNO | MB_ICONQUESTION);
-    if (res == IDYES) {
-        ShellExecuteA(nullptr, "open", installerPath.c_str(), nullptr, nullptr, SW_SHOWNORMAL);
-    }
-}
-
-#endif
-
 } // namespace
 #endif
 
@@ -169,13 +101,6 @@ int main(int argc, char* argv[]) {
 #ifdef ZIBBY_HAS_PANEL
             return zibby::panel::runPanel(argc, argv);
 #else
-            const auto dir = exeDir();
-            const auto installer = findInstallerExe(dir);
-            if (!installer.empty()) {
-                offerRunInstaller(installer);
-            } else {
-                MessageBoxA(nullptr, "GUI is not available in this build and installer not located.", "zibby-service", MB_OK | MB_ICONWARNING);
-            }
             return 0;
 #endif
         }

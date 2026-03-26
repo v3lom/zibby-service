@@ -8,12 +8,15 @@ class QLabel;
 class QLineEdit;
 class QPlainTextEdit;
 class QPushButton;
-class QListWidget;
+class QListView;
+class QSortFilterProxyModel;
 class QSystemTrayIcon;
 class QTimer;
 
 namespace zibby::panel {
 class ApiClient;
+class PeerListModel;
+class MessageListModel;
 }
 
 namespace zibby::panel {
@@ -52,25 +55,17 @@ private:
     QLineEdit* peerSearch_ = nullptr;
     QPushButton* discoverBtn_ = nullptr;
     QPushButton* refreshPeersBtn_ = nullptr;
-    QListWidget* peersList_ = nullptr;
+    QListView* peersView_ = nullptr;
+    PeerListModel* peersModel_ = nullptr;
+    QSortFilterProxyModel* peersProxy_ = nullptr;
     QLabel* chatTitle_ = nullptr;
-    QListWidget* messagesList_ = nullptr;
+    QListView* messagesView_ = nullptr;
+    MessageListModel* messagesModel_ = nullptr;
     QLineEdit* messageText_ = nullptr;
     QPushButton* sendBtn_ = nullptr;
     QTimer* peersTimer_ = nullptr;
     QString localProfileId_;
     QString currentPeerId_;
-
-    struct PeerItem {
-        QString peerId;
-        QString name;
-        QString host;
-        int port = 0;
-        QString version;
-        QString lastSeen;
-    };
-
-    QVector<PeerItem> peers_;
 
     QPushButton* startBtn_ = nullptr;
     QPushButton* stopBtn_ = nullptr;
