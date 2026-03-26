@@ -1,5 +1,3 @@
-$ErrorActionPreference = "Stop"
-
 param(
     # Where to install MSYS2. Defaults to repo-local tools to avoid admin.
     [string]$MsysRoot,
@@ -12,6 +10,8 @@ param(
     # Force reinstall / re-download.
     [switch]$Force
 )
+
+$ErrorActionPreference = "Stop"
 
 function Get-RepoRoot {
     $root = Resolve-Path (Join-Path $PSScriptRoot "..")
