@@ -1,16 +1,23 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-if command -v dialog >/dev/null 2>&1; then
-  BUILD_TYPE=$(dialog --stdout --menu "Build type" 12 40 2 1 Debug 2 Release)
-  TESTS=$(dialog --stdout --yesno "Enable tests?" 7 40; echo $?)
-  echo "BUILD_TYPE=${BUILD_TYPE}"
-  if [[ "${TESTS}" == "0" ]]; then
-    echo "ENABLE_TESTS=ON"
-  else
-    echo "ENABLE_TESTS=OFF"
-  fi
-else
-  echo "dialog is not installed"
-  exit 1
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+BOOTSTRAP_DIR="${ROOT_DIR}/build/bootstrap"
+
+mkdir -p "${BOOTSTRAP_DIR}"
+
+GEN_ARGS=()
+if command -v ninja >/dev/null 2>&1; then
+  GEN_ARGS=("-G" "Ninja")
 fi
+
+cmake -S "${ROOT_DIR}" -B "${BOOTSTRAP_DIR}" "${GEN_ARGS[@]}" \
+  -DZIBBY_ENABLE_TESTS=OFF \
+  -DZIBBY_ENABLE_CALLS=OFF \
+  -DZIBBY_ENABLE_PLUGINS=OFF \
+  -DZIBBY_ENABLE_PANEL=OFF
+
+cmake --build "${BOOTSTRAP_DIR}" --target zibby-build-tui
+
+"${BOOTSTRAP_DIR}/zibby-build-tui"
+exit $?

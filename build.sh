@@ -3,10 +3,34 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BUILD_DIR="${ROOT_DIR}/build"
+BOOTSTRAP_DIR="${BUILD_DIR}/bootstrap"
 TEST_ONLY=0
+LEGACY=0
 
 if [[ "${1:-}" == "--test-only" ]]; then
   TEST_ONLY=1
+fi
+
+if [[ "${1:-}" == "--legacy" ]]; then
+  LEGACY=1
+fi
+
+# New default interactive flow: build and run the TUI builder/installer.
+# Keeps CI/non-interactive usage working via --legacy or --test-only.
+if [[ "${TEST_ONLY}" == "0" && "${LEGACY}" == "0" && -t 1 ]]; then
+  mkdir -p "${BOOTSTRAP_DIR}"
+  GEN_ARGS=()
+  if command -v ninja >/dev/null 2>&1; then
+    GEN_ARGS=("-G" "Ninja")
+  fi
+  cmake -S "${ROOT_DIR}" -B "${BOOTSTRAP_DIR}" "${GEN_ARGS[@]}" \
+    -DZIBBY_ENABLE_TESTS=OFF \
+    -DZIBBY_ENABLE_CALLS=OFF \
+    -DZIBBY_ENABLE_PLUGINS=OFF \
+    -DZIBBY_ENABLE_PANEL=OFF
+  cmake --build "${BOOTSTRAP_DIR}" --target zibby-build-tui
+  "${BOOTSTRAP_DIR}/zibby-build-tui"
+  exit $?
 fi
 
 select_build_type() {

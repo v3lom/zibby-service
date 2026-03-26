@@ -67,11 +67,48 @@ if ($InstallDeps) {
 }
 
 if ($Interactive) {
-    $buildType = Show-Menu
-    $enableTests = Show-YesNo "Enable tests?"
-    $enableCalls = Show-YesNo "Enable calls module?" $false
-    $enablePlugins = Show-YesNo "Enable plugins module?"
-    $enablePanel = Show-YesNo "Enable embedded Qt panel (full build)?"
+    # Bootstrap-build and run the interactive TUI builder/installer.
+    $bootstrapDir = Join-Path $PSScriptRoot "build\bootstrap"
+    if (!(Test-Path $bootstrapDir)) {
+        New-Item -ItemType Directory -Path $bootstrapDir | Out-Null
+    }
+
+    $cmakeArgs = @(
+        "-S", ".",
+        "-B", $bootstrapDir,
+        "-DZIBBY_ENABLE_TESTS=OFF",
+        "-DZIBBY_ENABLE_CALLS=OFF",
+        "-DZIBBY_ENABLE_PLUGINS=OFF",
+        "-DZIBBY_ENABLE_PANEL=OFF"
+    )
+
+    if (Get-Command ninja -ErrorAction SilentlyContinue) {
+        $cmakeArgs = @("-G", "Ninja") + $cmakeArgs
+    }
+
+    # Best-effort vcpkg integration (keeps CI and local setups working).
+    if ($env:VCPKG_ROOT) {
+        $tc = Join-Path $env:VCPKG_ROOT "scripts\buildsystems\vcpkg.cmake"
+        if (Test-Path $tc) {
+            $cmakeArgs += "-DCMAKE_TOOLCHAIN_FILE=$tc"
+        }
+    } elseif ($env:VCPKG_INSTALLATION_ROOT) {
+        $tc = Join-Path $env:VCPKG_INSTALLATION_ROOT "scripts\buildsystems\vcpkg.cmake"
+        if (Test-Path $tc) {
+            $cmakeArgs += "-DCMAKE_TOOLCHAIN_FILE=$tc"
+        }
+    }
+
+    Invoke-External -FilePath "cmake" -Arguments $cmakeArgs
+    Invoke-External -FilePath "cmake" -Arguments @("--build", $bootstrapDir, "--target", "zibby-build-tui")
+
+    $tuiExe = Join-Path $bootstrapDir "zibby-build-tui.exe"
+    if (!(Test-Path $tuiExe)) {
+        throw "Bootstrap TUI executable not found: $tuiExe"
+    }
+
+    & $tuiExe
+    exit $LASTEXITCODE
 } else {
     $buildType = $BuildType
     $enableTests = $EnableTests

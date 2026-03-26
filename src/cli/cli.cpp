@@ -1,5 +1,7 @@
 #include "cli/cli.h"
 
+#include "utils/ansi.h"
+
 #include <boost/asio.hpp>
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
@@ -102,14 +104,15 @@ bool rpc(boost::asio::ip::tcp::socket& socket, const pt::ptree& request, pt::ptr
 }
 
 void printHelp() {
-    std::cout << "Commands:\n";
-    std::cout << "  help\n";
-    std::cout << "  api-info\n";
-    std::cout << "  ping\n";
-    std::cout << "  profile-get\n";
-    std::cout << "  profile-set-name <name>\n";
-    std::cout << "  peers\n";
-    std::cout << "  quit | exit\n";
+    const auto a = zibby::utils::Ansi::forStdout();
+    std::cout << a.bold() << "Commands:" << a.reset() << "\n";
+    std::cout << "  " << a.cyan() << "help" << a.reset() << "\n";
+    std::cout << "  " << a.cyan() << "api-info" << a.reset() << "\n";
+    std::cout << "  " << a.cyan() << "ping" << a.reset() << "\n";
+    std::cout << "  " << a.cyan() << "profile-get" << a.reset() << "\n";
+    std::cout << "  " << a.cyan() << "profile-set-name" << a.reset() << " <name>\n";
+    std::cout << "  " << a.cyan() << "peers" << a.reset() << "\n";
+    std::cout << "  " << a.cyan() << "quit" << a.reset() << " | " << a.cyan() << "exit" << a.reset() << "\n";
 }
 
 } // namespace
@@ -121,20 +124,25 @@ int Cli::run() {
 }
 
 int Cli::run(const std::string& apiEndpoint, const std::string& apiToken) {
+    const auto out = zibby::utils::Ansi::forStdout();
+    const auto err = zibby::utils::Ansi::forStderr();
+
     if (apiEndpoint.empty()) {
-        std::cerr << "CLI error: empty api endpoint" << '\n';
+        std::cerr << err.red() << "CLI error: " << err.reset() << "empty api endpoint" << '\n';
         return 2;
     }
 
     if (apiToken.empty()) {
-        std::cerr << "CLI error: api token is empty (start the service once to generate token)" << '\n';
+        std::cerr << err.red() << "CLI error: " << err.reset()
+                  << "api token is empty (start the service once to generate token)" << '\n';
         return 2;
     }
 
     std::string host;
     unsigned short port = 0;
     if (!parseEndpoint(apiEndpoint, &host, &port)) {
-        std::cerr << "CLI error: invalid api endpoint format, expected host:port" << '\n';
+        std::cerr << err.red() << "CLI error: " << err.reset()
+                  << "invalid api endpoint format, expected host:port" << '\n';
         return 2;
     }
 
@@ -156,24 +164,25 @@ int Cli::run(const std::string& apiEndpoint, const std::string& apiToken) {
             pt::ptree resp;
             std::string raw;
             if (!rpc(socket, req, &resp, &raw)) {
-                std::cerr << "CLI error: invalid auth response: " << raw << '\n';
+                std::cerr << err.red() << "CLI error: " << err.reset() << "invalid auth response: " << raw << '\n';
                 return 3;
             }
 
             const bool ok = resp.get<bool>("ok", false);
             if (!ok) {
-                std::cerr << "CLI auth failed: " << resp.get<std::string>("error", "unknown") << '\n';
+                std::cerr << err.red() << "CLI auth failed: " << err.reset()
+                          << resp.get<std::string>("error", "unknown") << '\n';
                 return 3;
             }
         }
 
-        std::cout << "Connected to API at " << apiEndpoint << "\n";
-        std::cout << "Type 'help' for commands.\n";
+        std::cout << out.green() << "Connected" << out.reset() << " to API at " << apiEndpoint << "\n";
+        std::cout << "Type '" << out.cyan() << "help" << out.reset() << "' for commands.\n";
 
         std::uint64_t requestId = 2;
         std::string line;
         while (true) {
-            std::cout << "zibby> ";
+            std::cout << out.cyan() << "zibby" << out.reset() << "> ";
             if (!std::getline(std::cin, line)) {
                 break;
             }
@@ -211,13 +220,13 @@ int Cli::run(const std::string& apiEndpoint, const std::string& apiToken) {
             } else if (line == "peers") {
                 req = makeRequest(std::to_string(requestId++), "peers.list");
             } else {
-                std::cerr << "Unknown command. Type 'help'." << '\n';
+                std::cerr << err.yellow() << "Unknown command." << err.reset() << " Type 'help'." << '\n';
                 continue;
             }
 
             std::string raw;
             if (!rpc(socket, req, nullptr, &raw)) {
-                std::cerr << "CLI error: invalid response" << '\n';
+                std::cerr << err.red() << "CLI error: " << err.reset() << "invalid response" << '\n';
                 continue;
             }
             std::cout << raw << '\n';
@@ -225,7 +234,7 @@ int Cli::run(const std::string& apiEndpoint, const std::string& apiToken) {
 
         return 0;
     } catch (const std::exception& ex) {
-        std::cerr << "CLI error: " << ex.what() << '\n';
+        std::cerr << err.red() << "CLI error: " << err.reset() << ex.what() << '\n';
         return 3;
     }
 }

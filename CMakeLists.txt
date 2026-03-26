@@ -97,6 +97,23 @@ add_executable(zibby-service
     ${ZIBBY_COMMON_SOURCES}
 )
 
+# Bootstrap TUI builder/installer (no external deps; used by build scripts)
+add_executable(zibby-build-tui
+    src/tools/build_tui/main.cpp
+)
+
+target_include_directories(zibby-build-tui
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+
+if(MSVC)
+    target_compile_options(zibby-build-tui PRIVATE /W4 /permissive-)
+else()
+    target_compile_options(zibby-build-tui PRIVATE -Wall -Wextra -Wpedantic)
+endif()
+
 if(WIN32 AND ZIBBY_ENABLE_PANEL)
     # Help CMake locate Qt6 when building with MSYS2/MinGW on Windows.
     # This keeps the default behavior (auto-detect) but adds a common prefix.

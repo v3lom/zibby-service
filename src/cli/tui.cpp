@@ -1,5 +1,7 @@
 #include "cli/tui.h"
 
+#include "utils/ansi.h"
+
 #include "core/database.h"
 #include "core/message.h"
 #include "core/network.h"
@@ -10,8 +12,83 @@
 #include <boost/filesystem.hpp>
 
 #include <fstream>
+#include <cctype>
 #include <iostream>
 #include <string>
+
+#ifdef _WIN32
+#define NOMINMAX
+#include <windows.h>
+#endif
+
+namespace {
+
+enum class Lang {
+    En,
+    Ru,
+};
+
+Lang detectLang() {
+    const char* lang = std::getenv("LANG");
+    if (lang != nullptr) {
+        std::string v(lang);
+        for (auto& ch : v) {
+            ch = static_cast<char>(std::tolower(static_cast<unsigned char>(ch)));
+        }
+        if (v.rfind("ru", 0) == 0 || v.find("_ru") != std::string::npos || v.find("ru_") != std::string::npos) {
+            return Lang::Ru;
+        }
+    }
+#ifdef _WIN32
+    const LANGID lid = GetUserDefaultUILanguage();
+    if (PRIMARYLANGID(lid) == LANG_RUSSIAN) {
+        return Lang::Ru;
+    }
+#endif
+    return Lang::En;
+}
+
+struct Strings {
+    Lang lang = Lang::En;
+
+    const char* title() const { return lang == Lang::Ru ? "Zibby TUI" : "Zibby TUI"; }
+    const char* menuProfile() const { return lang == Lang::Ru ? "Профиль" : "Profile"; }
+    const char* menuSend() const { return lang == Lang::Ru ? "Отправить сообщение" : "Send message"; }
+    const char* menuHistory() const { return lang == Lang::Ru ? "История чата" : "Chat history"; }
+    const char* menuDiscover() const { return lang == Lang::Ru ? "Поиск клиентов" : "Discover peers"; }
+    const char* menuPeers() const { return lang == Lang::Ru ? "Список клиентов" : "Peers list"; }
+    const char* menuClearCache() const { return lang == Lang::Ru ? "Очистка кеша" : "Clear cache"; }
+    const char* menuUnsupported() const {
+        return lang == Lang::Ru ? "Неподдерживаемые действия (звонки/файлы)" : "Unsupported actions (calls/files)";
+    }
+    const char* menuExit() const { return lang == Lang::Ru ? "Выход" : "Exit"; }
+
+    const char* prompt() const { return lang == Lang::Ru ? "> " : "> "; }
+    const char* currentName() const { return lang == Lang::Ru ? "Текущее имя" : "Current name"; }
+    const char* newNamePrompt() const { return lang == Lang::Ru ? "Новое имя (Enter чтобы оставить)" : "New name (Enter to keep)"; }
+    const char* profileSaveError() const { return lang == Lang::Ru ? "Ошибка сохранения профиля" : "Profile save error"; }
+    const char* profileUpdated() const { return lang == Lang::Ru ? "Профиль обновлен" : "Profile updated"; }
+
+    const char* sendError() const { return lang == Lang::Ru ? "Ошибка отправки" : "Send failed"; }
+    const char* sentOk() const { return lang == Lang::Ru ? "Отправлено" : "Sent"; }
+
+    const char* foundPeers() const { return lang == Lang::Ru ? "Найдено клиентов" : "Peers found"; }
+    const char* cacheCleared() const { return lang == Lang::Ru ? "Кеш очищен" : "Cache cleared"; }
+    const char* cacheClearError() const { return lang == Lang::Ru ? "Ошибка очистки кеша" : "Cache clear error"; }
+
+    const char* unsupportedText1() const {
+        return lang == Lang::Ru
+            ? "Звонки, голосовые сообщения и передача файлов пока не поддерживаются в CLI/TUI."
+            : "Calls, voice messages and file transfer are not supported in CLI/TUI yet.";
+    }
+    const char* unsupportedText2() const {
+        return lang == Lang::Ru
+            ? "Используйте внешний фронтенд через локальный API."
+            : "Use an external frontend via the local API.";
+    }
+};
+
+} // namespace
 
 namespace zibby::cli {
 
@@ -22,17 +99,21 @@ int Tui::run(
     const zibby::core::Config& config) {
     namespace fs = boost::filesystem;
 
+    const auto out = zibby::utils::Ansi::forStdout();
+    Strings strings;
+    strings.lang = detectLang();
+
     while (true) {
-        std::cout << "\n=== Zibby TUI ===\n";
-        std::cout << "1) Профиль\n";
-        std::cout << "2) Отправить сообщение\n";
-        std::cout << "3) История чата\n";
-        std::cout << "4) Поиск клиентов\n";
-        std::cout << "5) Список клиентов\n";
-        std::cout << "6) Очистка кеша\n";
-        std::cout << "7) Неподдерживаемые действия (звонки/файлы)\n";
-        std::cout << "0) Выход\n";
-        std::cout << "> ";
+        std::cout << "\n" << out.bold() << out.cyan() << "=== " << strings.title() << " ===" << out.reset() << "\n";
+        std::cout << "1) " << strings.menuProfile() << "\n";
+        std::cout << "2) " << strings.menuSend() << "\n";
+        std::cout << "3) " << strings.menuHistory() << "\n";
+        std::cout << "4) " << strings.menuDiscover() << "\n";
+        std::cout << "5) " << strings.menuPeers() << "\n";
+        std::cout << "6) " << strings.menuClearCache() << "\n";
+        std::cout << "7) " << strings.menuUnsupported() << "\n";
+        std::cout << "0) " << strings.menuExit() << "\n";
+        std::cout << strings.prompt();
 
         std::string choice;
         std::getline(std::cin, choice);
@@ -43,16 +124,16 @@ int Tui::run(
 
         if (choice == "1") {
             auto profile = profileService.ensureLocalProfile(boost::asio::ip::host_name());
-            std::cout << "Текущее имя: " << profile.displayName << "\n";
-            std::cout << "Новое имя (Enter чтобы оставить): ";
+            std::cout << strings.currentName() << ": " << profile.displayName << "\n";
+            std::cout << strings.newNamePrompt() << ": ";
             std::string newName;
             std::getline(std::cin, newName);
             if (!newName.empty()) {
                 profile.displayName = newName;
                 if (!profileService.save(profile)) {
-                    std::cout << "Ошибка сохранения профиля\n";
+                    std::cout << out.red() << strings.profileSaveError() << out.reset() << "\n";
                 } else {
-                    std::cout << "Профиль обновлен\n";
+                    std::cout << out.green() << strings.profileUpdated() << out.reset() << "\n";
                 }
             }
             continue;
@@ -74,9 +155,9 @@ int Tui::run(
 
             const auto id = messageService.sendText(chat, from, to, text);
             if (!id.has_value()) {
-                std::cout << "Ошибка отправки\n";
+                std::cout << out.red() << strings.sendError() << out.reset() << "\n";
             } else {
-                std::cout << "Отправлено, id=" << *id << "\n";
+                std::cout << out.green() << strings.sentOk() << out.reset() << ", id=" << *id << "\n";
             }
             continue;
         }
@@ -97,7 +178,7 @@ int Tui::run(
             for (const auto& peer : peers) {
                 database.upsertPeer(peer);
             }
-            std::cout << "Найдено клиентов: " << peers.size() << "\n";
+            std::cout << strings.foundPeers() << ": " << peers.size() << "\n";
             continue;
         }
 
@@ -117,16 +198,16 @@ int Tui::run(
                 removedCount = fs::remove_all(cacheDir, ec);
             }
             if (ec) {
-                std::cout << "Ошибка очистки кеша: " << ec.message() << "\n";
+                std::cout << out.red() << strings.cacheClearError() << out.reset() << ": " << ec.message() << "\n";
             } else {
-                std::cout << "Кеш очищен. Удалено объектов: " << removedCount << "\n";
+                std::cout << out.green() << strings.cacheCleared() << out.reset() << ". Removed: " << removedCount << "\n";
             }
             continue;
         }
 
         if (choice == "7") {
-            std::cout << "Звонки, голосовые сообщения и передача файлов пока не поддерживаются в CLI/TUI.\n";
-            std::cout << "Используйте внешний фронтенд через локальный API.\n";
+            std::cout << out.yellow() << strings.unsupportedText1() << out.reset() << "\n";
+            std::cout << strings.unsupportedText2() << "\n";
             continue;
         }
     }

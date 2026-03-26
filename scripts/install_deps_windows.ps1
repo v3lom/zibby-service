@@ -1,5 +1,52 @@
 $ErrorActionPreference = "Stop"
 
+function Install-MSYS2-IfMissing {
+    param(
+        [string]$PreferredRoot = "$env:SystemDrive\msys64"
+    )
+
+    if (Test-Path (Join-Path $PreferredRoot "usr\bin\pacman.exe")) {
+        return
+    }
+
+    $fallbackRoot = Join-Path $env:USERPROFILE "msys64"
+    if (Test-Path (Join-Path $fallbackRoot "usr\bin\pacman.exe")) {
+        return
+    }
+
+    $url = "https://github.com/msys2/msys2-installer/releases/latest/download/msys2-base-x86_64-latest.sfx.exe"
+    $tmp = Join-Path $env:TEMP "msys2-base-x86_64-latest.sfx.exe"
+
+    Write-Host "MSYS2 not found; downloading bootstrap installer..."
+    try {
+        Invoke-WebRequest -Uri $url -OutFile $tmp -UseBasicParsing
+    } catch {
+        Write-Host "Failed to download MSYS2 from $url"
+        Write-Host "Install MSYS2 manually from https://www.msys2.org/ then re-run this script."
+        return
+    }
+
+    # Prefer system drive, but fall back to user profile if not permitted.
+    $targetParent = "$env:SystemDrive\"
+    try {
+        New-Item -ItemType Directory -Path $PreferredRoot -Force | Out-Null
+        $targetParent = "$env:SystemDrive\"
+    } catch {
+        Write-Host "No permission to write to $PreferredRoot; using $fallbackRoot"
+        New-Item -ItemType Directory -Path $fallbackRoot -Force | Out-Null
+        $targetParent = (Split-Path -Parent $fallbackRoot) + "\"
+    }
+
+    Write-Host "Extracting MSYS2 to $targetParent (this may take a minute)..."
+    & $tmp -y -o$targetParent
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "MSYS2 extraction failed (exit $LASTEXITCODE)"
+        return
+    }
+
+    Write-Host "MSYS2 extracted. You may need to open a new terminal for PATH changes to apply."
+}
+
 function Install-NSIS-WithWinget {
     if (Get-Command winget -ErrorAction SilentlyContinue) {
         # NSIS provides makensis.exe (used by CPack NSIS generator)
@@ -30,6 +77,7 @@ function Find-Pacman {
 }
 
 function Install-MSYS2Deps {
+    Install-MSYS2-IfMissing
     $pacman = Find-Pacman
     if (-not $pacman) {
         Write-Host "MSYS2 pacman not found; skipping MSYS2 packages."
