@@ -29,6 +29,19 @@ Repository: https://github.com/v3lom/zibby-service
 ./build.ps1
 ```
 
+Notes:
+
+- `scripts/install_deps_windows.ps1` bootstraps **MSYS2 + MinGW64 toolchain** and installs `cmake`, `git`, `ninja`, Boost, OpenSSL, SQLite, NSIS via `pacman` (no `winget`/`choco` required).
+- By default MSYS2 is installed into `tools/msys64` inside the repo (no Administrator required). The script can also add MSYS2 paths into your *User* PATH.
+
+### Windows (CMD)
+
+```bat
+build.bat
+```
+
+If `zibby-build-tui.exe` exists in the repo root, `build.bat` runs it directly.
+
 ### Linux
 
 ```bash
@@ -45,6 +58,18 @@ zibby-service --daemon
 zibby-service --cli
 zibby-service --check-updates
 ```
+
+## TUI Builder/Installer (`zibby-build-tui`)
+
+When you run `build.ps1` (or `build.bat`) interactively, it bootstraps and launches `zibby-build-tui`.
+
+Non-interactive arguments (useful for testing/diagnostics):
+
+- `zibby-build-tui --help`
+- `zibby-build-tui --version`
+- `zibby-build-tui --check` (prints environment diagnostics and exits with code 0 if `cmake` is available)
+- `zibby-build-tui --deps` (runs dependency installer and exits)
+- `zibby-build-tui --deps-admin` (Windows: installs deps as Administrator into `C:\msys64`)
 
 `--cli` connects to a running local daemon instance and checks service availability.
 
