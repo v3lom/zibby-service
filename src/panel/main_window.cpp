@@ -15,6 +15,7 @@
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QLineEdit>
+#include <QListWidget>
 #include <QMenu>
 #include <QMetaObject>
 #include <QMessageBox>
@@ -28,6 +29,9 @@
 #include <QUrl>
 #include <QVBoxLayout>
 #include <QTcpSocket>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QJsonArray>
 
 #include <atomic>
 #include <thread>
@@ -179,50 +183,83 @@ MainWindow::MainWindow(QWidget* parent)
         connect(refresh, &QPushButton::clicked, this, [this]() { refreshNetworkInfo(); });
     }
 
-    // Messenger tab (minimal)
+    // Messenger tab (fuller UI)
     {
         auto* w = new QWidget(this);
-        auto* layout = new QVBoxLayout(w);
+        auto* root = new QHBoxLayout(w);
 
-        apiLog_ = new QPlainTextEdit(w);
-        apiLog_->setReadOnly(true);
+        // Left: peers/search
+        auto* left = new QWidget(w);
+        auto* leftLayout = new QVBoxLayout(left);
+        peerSearch_ = new QLineEdit(left);
+        peerSearch_->setPlaceholderText("Search peers...");
+        discoverBtn_ = new QPushButton("Auto-discover", left);
+        refreshPeersBtn_ = new QPushButton("Refresh list", left);
+        peersList_ = new QListWidget(left);
+        peersList_->setSelectionMode(QAbstractItemView::SingleSelection);
 
-        chatId_ = new QLineEdit(w);
-        chatId_->setPlaceholderText("chat id");
-        fromId_ = new QLineEdit(w);
-        fromId_->setPlaceholderText("from");
-        toId_ = new QLineEdit(w);
-        toId_->setPlaceholderText("to");
-        messageText_ = new QLineEdit(w);
-        messageText_->setPlaceholderText("message text");
+        leftLayout->addWidget(peerSearch_);
+        leftLayout->addWidget(discoverBtn_);
+        leftLayout->addWidget(refreshPeersBtn_);
+        leftLayout->addWidget(peersList_, 1);
 
-        auto* row1 = new QHBoxLayout();
-        row1->addWidget(chatId_);
-        auto* historyBtn = new QPushButton("History", w);
-        row1->addWidget(historyBtn);
+        // Right: chat
+        auto* right = new QWidget(w);
+        auto* rightLayout = new QVBoxLayout(right);
+        chatTitle_ = new QLabel("Select a peer", right);
+        messagesList_ = new QListWidget(right);
+        messagesList_->setSelectionMode(QAbstractItemView::NoSelection);
+        messagesList_->setWordWrap(true);
 
-        auto* row2 = new QHBoxLayout();
-        row2->addWidget(fromId_);
-        row2->addWidget(toId_);
+        auto* inputRow = new QHBoxLayout();
+        messageText_ = new QLineEdit(right);
+        messageText_->setPlaceholderText("Write a message...");
+        sendBtn_ = new QPushButton("Send", right);
+        inputRow->addWidget(messageText_, 1);
+        inputRow->addWidget(sendBtn_);
 
-        auto* row3 = new QHBoxLayout();
-        row3->addWidget(messageText_);
-        auto* sendBtn = new QPushButton("Send", w);
-        row3->addWidget(sendBtn);
+        rightLayout->addWidget(chatTitle_);
+        rightLayout->addWidget(messagesList_, 1);
+        rightLayout->addLayout(inputRow);
 
-        layout->addLayout(row1);
-        layout->addLayout(row2);
-        layout->addLayout(row3);
-        layout->addWidget(apiLog_);
+        root->addWidget(left, 0);
+        root->addWidget(right, 1);
 
         tabs->addTab(w, "Messenger");
 
-        connect(historyBtn, &QPushButton::clicked, this, [this]() {
-            api_->requestMessageHistory(chatId_->text().trimmed(), 50);
+        connect(discoverBtn_, &QPushButton::clicked, this, [this]() {
+            api_->requestPeersDiscover(1200);
         });
-        connect(sendBtn, &QPushButton::clicked, this, [this]() {
-            api_->requestMessageSend(chatId_->text().trimmed(), fromId_->text().trimmed(), toId_->text().trimmed(), messageText_->text());
+        connect(refreshPeersBtn_, &QPushButton::clicked, this, [this]() {
+            api_->requestPeersList(200);
         });
+        connect(peerSearch_, &QLineEdit::textChanged, this, [this](const QString&) {
+            refreshPeersUi();
+        });
+        connect(peersList_, &QListWidget::currentRowChanged, this, [this](int row) {
+            if (row < 0 || row >= peersList_->count()) {
+                return;
+            }
+            const auto peerId = peersList_->item(row)->data(Qt::UserRole).toString();
+            openPeerChat(peerId);
+        });
+        connect(sendBtn_, &QPushButton::clicked, this, [this]() {
+            if (currentPeerId_.isEmpty()) {
+                QMessageBox::information(this, "Send", "Select a peer first");
+                return;
+            }
+            const QString text = messageText_->text();
+            if (text.trimmed().isEmpty()) {
+                return;
+            }
+            const QString chatId = currentPeerId_;
+            const QString from = localProfileId_.isEmpty() ? QString("local") : localProfileId_;
+            const QString to = currentPeerId_;
+            api_->requestMessageSend(chatId, from, to, text);
+            messageText_->clear();
+            refreshCurrentChatHistory();
+        });
+        connect(messageText_, &QLineEdit::returnPressed, sendBtn_, &QPushButton::click);
     }
 
     // About tab
@@ -279,14 +316,20 @@ MainWindow::MainWindow(QWidget* parent)
     connect(api_, &ApiClient::statusChanged, this, [this](const QString& s) {
         apiLog_->appendPlainText("[api] " + s);
     });
-    connect(api_, &ApiClient::rpcResponse, this, [this](const QString& line) {
-        apiLog_->appendPlainText(line);
-    });
+    connect(api_, &ApiClient::rpcResponse, this, [this](const QString& line) { handleRpcLine(line); });
 
     loadConfigAndWire();
     refreshNetworkInfo();
     refreshServiceStatus();
     statusTimer_->start();
+
+    peersTimer_ = new QTimer(this);
+    peersTimer_->setInterval(15000);
+    connect(peersTimer_, &QTimer::timeout, this, [this]() {
+        api_->requestPeersDiscover(900);
+        api_->requestPeersList(200);
+    });
+    peersTimer_->start();
 }
 
 QString MainWindow::readApiTokenFile(const QString& dataDir) const {
@@ -313,6 +356,122 @@ void MainWindow::loadConfigAndWire() {
     api_->setEndpoint(apiEndpoint_);
     api_->setToken(apiToken_);
     api_->connectAndLogin();
+
+    api_->requestProfileGet();
+    api_->requestPeersList(200);
+}
+
+void MainWindow::handleRpcLine(const QString& rawJsonLine) {
+    // Keep lightweight: parse known responses and update UI; unknown lines are ignored.
+    const auto doc = QJsonDocument::fromJson(rawJsonLine.toUtf8());
+    if (!doc.isObject()) {
+        return;
+    }
+    const auto obj = doc.object();
+    if (!obj.value("ok").toBool(false)) {
+        return;
+    }
+    const auto result = obj.value("result");
+    if (!result.isObject()) {
+        return;
+    }
+    const auto res = result.toObject();
+
+    // profile.get
+    if (res.contains("profile") && res.value("profile").isObject()) {
+        const auto profile = res.value("profile").toObject();
+        localProfileId_ = profile.value("id").toString();
+        return;
+    }
+
+    // peers.list
+    if (res.contains("peers") && res.value("peers").isArray()) {
+        peers_.clear();
+        const auto arr = res.value("peers").toArray();
+        peers_.reserve(arr.size());
+        for (const auto& v : arr) {
+            if (!v.isObject()) {
+                continue;
+            }
+            const auto p = v.toObject();
+            PeerItem item;
+            item.peerId = p.value("peer_id").toString();
+            item.name = p.value("name").toString();
+            item.host = p.value("host").toString();
+            item.port = p.value("port").toInt();
+            item.version = p.value("version").toString();
+            item.lastSeen = p.value("last_seen").toString();
+            if (!item.peerId.isEmpty()) {
+                peers_.push_back(item);
+            }
+        }
+        refreshPeersUi();
+        return;
+    }
+
+    // message.history
+    if (res.contains("messages") && res.value("messages").isArray()) {
+        if (currentPeerId_.isEmpty()) {
+            return;
+        }
+        messagesList_->clear();
+        const auto arr = res.value("messages").toArray();
+        for (const auto& v : arr) {
+            if (!v.isObject()) {
+                continue;
+            }
+            const auto m = v.toObject();
+            const QString from = m.value("from").toString();
+            const QString text = m.value("text").toString();
+            const QString createdAt = m.value("created_at").toString();
+
+            QString line = text;
+            if (!createdAt.isEmpty()) {
+                line = QString("%1\n%2").arg(createdAt, text);
+            }
+
+            auto* item = new QListWidgetItem(line, messagesList_);
+            if (!from.isEmpty() && from == localProfileId_) {
+                item->setTextAlignment(Qt::AlignRight);
+            } else {
+                item->setTextAlignment(Qt::AlignLeft);
+            }
+        }
+        messagesList_->scrollToBottom();
+        return;
+    }
+}
+
+void MainWindow::refreshPeersUi() {
+    if (!peersList_) {
+        return;
+    }
+    const QString q = peerSearch_ ? peerSearch_->text().trimmed() : QString();
+    peersList_->clear();
+    for (const auto& p : peers_) {
+        const QString title = (p.name.isEmpty() ? p.peerId : (p.name + " (" + p.peerId + ")"));
+        if (!q.isEmpty() && !title.contains(q, Qt::CaseInsensitive) && !p.host.contains(q, Qt::CaseInsensitive)) {
+            continue;
+        }
+        auto* item = new QListWidgetItem(title, peersList_);
+        item->setData(Qt::UserRole, p.peerId);
+        item->setToolTip(QString("%1:%2\n%3\nlast_seen=%4").arg(p.host).arg(p.port).arg(p.version, p.lastSeen));
+    }
+}
+
+void MainWindow::openPeerChat(const QString& peerId) {
+    currentPeerId_ = peerId;
+    if (chatTitle_) {
+        chatTitle_->setText(peerId.isEmpty() ? "Select a peer" : ("Chat: " + peerId));
+    }
+    refreshCurrentChatHistory();
+}
+
+void MainWindow::refreshCurrentChatHistory() {
+    if (currentPeerId_.isEmpty()) {
+        return;
+    }
+    api_->requestMessageHistory(currentPeerId_, 50);
 }
 
 void MainWindow::refreshServiceStatus() {
