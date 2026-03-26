@@ -1347,12 +1347,34 @@ int main(int argc, char** argv) {
         };
 
         auto runDepsFlow = [&]() {
-            setStatus(strings.statusRunning());
+            setStatus(strings.msgDepsPrompt());
             screen.clear();
             draw(termSize(), strings, ansi, glyphs, version, model, selected);
             std::cout.flush();
 
-            const bool ok = runInstallDeps(root);
+            bool admin = false;
+            while (true) {
+                const Key kk = readKey();
+                if (kk == Key::Enter || kk == Key::Yes) {
+                    admin = false;
+                    break;
+                }
+                if (kk == Key::Admin) {
+                    admin = true;
+                    break;
+                }
+                if (kk == Key::Esc || kk == Key::Quit || kk == Key::No) {
+                    setStatus(strings.statusReady());
+                    return;
+                }
+            }
+
+            setStatus(strings.msgDepsRunning());
+            screen.clear();
+            draw(termSize(), strings, ansi, glyphs, version, model, selected);
+            std::cout.flush();
+
+            const bool ok = runInstallDeps(root, admin);
             setStatus(ok ? strings.msgDepsDone() : "deps failed", !ok);
         };
 
