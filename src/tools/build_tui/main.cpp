@@ -735,8 +735,29 @@ fs::path repoLocalMsysRoot(const fs::path& root) {
     return root / "tools" / "msys64";
 }
 
+fs::path detectMsysRoot(const fs::path& root, bool preferSystem) {
+    const fs::path systemRoot = fs::path("C:/msys64");
+    const fs::path localRoot = repoLocalMsysRoot(root);
+
+    const bool systemOk = fs::exists(systemRoot / "usr" / "bin" / "bash.exe");
+    const bool localOk = fs::exists(localRoot / "usr" / "bin" / "bash.exe");
+
+    if (preferSystem && systemOk) {
+        return systemRoot;
+    }
+    if (localOk) {
+        return localRoot;
+    }
+    if (systemOk) {
+        return systemRoot;
+    }
+    return preferSystem ? systemRoot : localRoot;
+}
+
 void refreshToolPathsAfterDeps(const fs::path& root, bool systemInstall) {
-    const fs::path msysRoot = systemInstall ? fs::path("C:/msys64") : repoLocalMsysRoot(root);
+    // After elevated installs, MSYS2 may end up in repo-local tools/ (e.g. if args weren't applied).
+    // Always refresh based on what actually exists.
+    const fs::path msysRoot = detectMsysRoot(root, systemInstall);
     prependPathWin(msysRoot / "mingw64" / "bin");
     prependPathWin(msysRoot / "usr" / "bin");
 }
@@ -955,6 +976,16 @@ bool runConfigureBuildPack(const fs::path& root, const Settings& st, std::string
             << "-DZIBBY_ENABLE_CALLS=" << calls << " "
             << "-DZIBBY_ENABLE_PLUGINS=" << plugins << " "
             << "-DZIBBY_ENABLE_PANEL=" << panel;
+
+#ifdef _WIN32
+        // Help CMake locate MSYS2-provided packages (Boost/OpenSSL/SQLite/Qt, etc.) on fresh machines.
+        // This is especially important when using MSYS2/MinGW toolchain without system-wide package paths.
+        const fs::path msysRoot = detectMsysRoot(root, true);
+        const fs::path mingwPrefix = msysRoot / "mingw64";
+        if (fs::exists(mingwPrefix / "bin" / "g++.exe") || fs::exists(mingwPrefix / "bin" / "gcc.exe")) {
+            cfg << " -DCMAKE_PREFIX_PATH=" << shellQuote(mingwPrefix.string());
+        }
+#endif
 
         if (runSystem(cfg.str()) != 0) {
             if (outError) {
