@@ -33,6 +33,16 @@ namespace fs = std::filesystem;
 
 namespace {
 
+struct CliOptions {
+    bool help = false;
+    bool version = false;
+    bool check = false;
+    bool installDeps = false;
+    bool installDepsSystem = false;
+    bool noAnsi = false;
+    bool forceAscii = false;
+};
+
 struct TermSize {
     int cols = 80;
     int rows = 24;
@@ -134,6 +144,9 @@ enum class Key {
     Build,
     Update,
     Deps,
+    Yes,
+    No,
+    Admin,
 };
 
 #ifdef _WIN32
@@ -252,6 +265,15 @@ Key readKeyWin() {
         const wchar_t c = k.uChar.UnicodeChar;
         if (c == L'q' || c == L'Q') {
             return Key::Quit;
+        }
+        if (c == L'y' || c == L'Y' || c == L'\u0434' || c == L'\u0414') {
+            return Key::Yes;
+        }
+        if (c == L'n' || c == L'N' || c == L'\u043d' || c == L'\u041d') {
+            return Key::No;
+        }
+        if (c == L'a' || c == L'A') {
+            return Key::Admin;
         }
         if (c == L'b' || c == L'B') {
             return Key::Build;
@@ -378,6 +400,16 @@ Key readKeyUnix() {
     }
     if (c == 'd' || c == 'D') {
         return Key::Deps;
+    }
+
+    if (c == 'y' || c == 'Y') {
+        return Key::Yes;
+    }
+    if (c == 'n' || c == 'N') {
+        return Key::No;
+    }
+    if (c == 'a' || c == 'A') {
+        return Key::Admin;
     }
 
     return Key::None;
@@ -542,13 +574,15 @@ struct GitUpdateStatus {
 
 GitUpdateStatus gitCheckUpdates(const fs::path& root) {
     GitUpdateStatus st;
-
-    if (!fs::exists(root / ".git")) {
-        st.error = "not_git";
-        return st;
-    }
     if (!commandExists("git")) {
         st.error = "git_missing";
+        return st;
+    }
+
+    const auto inside = execRead(
+        "git -C " + shellQuote(root.string()) + " rev-parse --is-inside-work-tree " + stderrToNull());
+    if (inside.find("true") == std::string::npos) {
+        st.error = "not_git";
         return st;
     }
 
@@ -646,6 +680,59 @@ bool gitPullFastForward(const fs::path& root) {
     const int code = runSystem("git -C " + shellQuote(root.string()) + " pull --ff-only");
     return code == 0;
 }
+
+#ifdef _WIN32
+std::string psSingleQuote(const std::string& s) {
+    std::string out;
+    out.reserve(s.size() + 2);
+    out.push_back('\'');
+    for (const char c : s) {
+        if (c == '\'') {
+            out += "''";
+        } else {
+            out.push_back(c);
+        }
+    }
+    out.push_back('\'');
+    return out;
+}
+
+std::string psArgArray(const std::vector<std::string>& args) {
+    std::ostringstream ss;
+    ss << "@(";
+    for (std::size_t i = 0; i < args.size(); ++i) {
+        if (i) {
+            ss << ",";
+        }
+        ss << psSingleQuote(args[i]);
+    }
+    ss << ")";
+    return ss.str();
+}
+
+void prependPathWin(const fs::path& p) {
+    if (!fs::exists(p)) {
+        return;
+    }
+    const char* old = std::getenv("PATH");
+    const std::string oldPath = old ? std::string(old) : std::string();
+    if (!oldPath.empty() && oldPath.find(p.string()) != std::string::npos) {
+        return;
+    }
+    const std::string newPath = p.string() + ";" + oldPath;
+    _putenv_s("PATH", newPath.c_str());
+}
+
+fs::path repoLocalMsysRoot(const fs::path& root) {
+    return root / "tools" / "msys64";
+}
+
+void refreshToolPathsAfterDeps(const fs::path& root, bool systemInstall) {
+    const fs::path msysRoot = systemInstall ? fs::path("C:/msys64") : repoLocalMsysRoot(root);
+    prependPathWin(msysRoot / "mingw64" / "bin");
+    prependPathWin(msysRoot / "usr" / "bin");
+}
+#endif
 
 struct ScopeCursor {
     Ansi ansi;
@@ -923,30 +1010,38 @@ bool runConfigureBuildPack(const fs::path& root, const Settings& st, std::string
     }
 }
 
-bool runInstallDeps(const fs::path& root) {
+bool runInstallDeps(const fs::path& root, bool admin = false) {
 #ifdef _WIN32
     const fs::path deps = root / "scripts" / "install_deps_windows.ps1";
     if (!fs::exists(deps)) {
         return false;
     }
-    // Ask first (user intent), then request UAC elevation.
-    std::cout << "Install dependencies? Press Enter to continue (UAC prompt), Esc to cancel." << std::endl;
-    while (true) {
-        const Key k = readKey();
-        if (k == Key::Enter) {
-            break;
-        }
-        if (k == Key::Esc || k == Key::Quit) {
-            return false;
-        }
-    }
+
+    const fs::path msysRoot = admin ? fs::path("C:/msys64") : repoLocalMsysRoot(root);
+
+    std::vector<std::string> psArgs = {
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        deps.string(),
+        "-NoPrompt",
+        "-MsysRoot",
+        msysRoot.string(),
+        "-AddToUserPath",
+        "-AddToProcessPath"
+    };
+
+    const std::string start = std::string("Start-Process PowerShell ") + (admin ? "-Verb RunAs " : "")
+        + "-Wait -ArgumentList " + psArgArray(psArgs);
 
     std::ostringstream cmd;
-    cmd << "powershell -NoProfile -ExecutionPolicy Bypass -Command "
-        << shellQuote(
-               std::string("Start-Process PowerShell -Verb RunAs -Wait -ArgumentList '")
-               + "-NoProfile -ExecutionPolicy Bypass -File " + deps.string() + "'");
-    return runSystem(cmd.str()) == 0;
+    cmd << "powershell -NoProfile -ExecutionPolicy Bypass -Command " << shellQuote(start);
+    const bool ok = runSystem(cmd.str()) == 0;
+    if (ok) {
+        refreshToolPathsAfterDeps(root, admin);
+    }
+    return ok;
 #else
     const fs::path deps = root / "scripts" / "install_deps_linux.sh";
     if (!fs::exists(deps)) {
