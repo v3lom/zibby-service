@@ -62,6 +62,7 @@ if(ZIBBY_BOOTSTRAP_TUI_ONLY)
         target_compile_options(zibby-build-tui PRIVATE /W4 /permissive-)
     else()
         target_compile_options(zibby-build-tui PRIVATE -Wall -Wextra -Wpedantic)
+        target_link_options(zibby-build-tui PRIVATE -static)
     endif()
 
     return()
@@ -118,6 +119,7 @@ add_executable(zibby-service
     src/core/main.cpp
     ${ZIBBY_COMMON_SOURCES}
 )
+target_link_options(zibby-service PRIVATE -static)
 
 # TUI builder/installer (cross-platform console UI)
 if(NOT TARGET zibby-build-tui)
@@ -135,6 +137,7 @@ if(NOT TARGET zibby-build-tui)
         target_compile_options(zibby-build-tui PRIVATE /W4 /permissive-)
     else()
         target_compile_options(zibby-build-tui PRIVATE -Wall -Wextra -Wpedantic)
+        target_link_options(zibby-build-tui PRIVATE -static)
     endif()
 endif()
 
