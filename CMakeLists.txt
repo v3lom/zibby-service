@@ -21,6 +21,8 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+option(ZIBBY_BOOTSTRAP_TUI_ONLY "Configure only zibby-build-tui (no third-party deps)" OFF)
+
 option(BUILD_TESTS "Build tests" ON)
 option(BUILD_PLUGINS "Enable plugin system" ON)
 option(BUILD_CALLS "Enable calls module" OFF)
@@ -44,6 +46,26 @@ set(BUILD_TUI ${ZIBBY_ENABLE_TUI})
 set(USE_SQLCIPHER ${ZIBBY_USE_SQLCIPHER})
 
 include(GNUInstallDirs)
+
+if(ZIBBY_BOOTSTRAP_TUI_ONLY)
+    add_executable(zibby-build-tui
+        src/tools/build_tui/main.cpp
+    )
+
+    target_include_directories(zibby-build-tui
+        PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/src
+            ${CMAKE_CURRENT_SOURCE_DIR}/include
+    )
+
+    if(MSVC)
+        target_compile_options(zibby-build-tui PRIVATE /W4 /permissive-)
+    else()
+        target_compile_options(zibby-build-tui PRIVATE -Wall -Wextra -Wpedantic)
+    endif()
+
+    return()
+endif()
 
 find_package(Boost 1.70 REQUIRED COMPONENTS filesystem system program_options)
 find_package(OpenSSL REQUIRED)
@@ -97,21 +119,23 @@ add_executable(zibby-service
     ${ZIBBY_COMMON_SOURCES}
 )
 
-# Bootstrap TUI builder/installer (no external deps; used by build scripts)
-add_executable(zibby-build-tui
-    src/tools/build_tui/main.cpp
-)
+# TUI builder/installer (cross-platform console UI)
+if(NOT TARGET zibby-build-tui)
+    add_executable(zibby-build-tui
+        src/tools/build_tui/main.cpp
+    )
 
-target_include_directories(zibby-build-tui
-    PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}/src
-        ${CMAKE_CURRENT_SOURCE_DIR}/include
-)
+    target_include_directories(zibby-build-tui
+        PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/src
+            ${CMAKE_CURRENT_SOURCE_DIR}/include
+    )
 
-if(MSVC)
-    target_compile_options(zibby-build-tui PRIVATE /W4 /permissive-)
-else()
-    target_compile_options(zibby-build-tui PRIVATE -Wall -Wextra -Wpedantic)
+    if(MSVC)
+        target_compile_options(zibby-build-tui PRIVATE /W4 /permissive-)
+    else()
+        target_compile_options(zibby-build-tui PRIVATE -Wall -Wextra -Wpedantic)
+    endif()
 endif()
 
 if(WIN32 AND ZIBBY_ENABLE_PANEL)

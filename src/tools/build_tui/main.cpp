@@ -667,8 +667,33 @@ struct UiModel {
     bool updatedRepo = false;
 };
 
+std::string repeatChar(const std::string& ch, int count) {
+    if (count <= 0) {
+        return {};
+    }
+    std::string out;
+    out.reserve(static_cast<std::size_t>(count) * ch.size());
+    for (int i = 0; i < count; ++i) {
+        out += ch;
+    }
+    return out;
+}
+
+std::string clipIfNoAnsi(const std::string& s, int maxCols, const Ansi& a) {
+    if (a.enabled) {
+        return s;
+    }
+    if (maxCols <= 0 || static_cast<int>(s.size()) <= maxCols) {
+        return s;
+    }
+    if (maxCols <= 1) {
+        return s.substr(0, static_cast<std::size_t>(maxCols));
+    }
+    return s.substr(0, static_cast<std::size_t>(maxCols - 1)) + "…";
+}
+
 void draw(const TermSize& ts, const Strings& s, const Ansi& a, const std::string& version, const UiModel& m, int selected) {
-    (void)ts;
+    const int cols = std::max(40, ts.cols);
 
     auto line = [&](const std::string& text) {
         std::cout << text << "\n";
@@ -676,9 +701,9 @@ void draw(const TermSize& ts, const Strings& s, const Ansi& a, const std::string
 
     const std::string v = version.empty() ? "" : ("v" + version);
 
-    line(std::string(a.bold()) + s.title() + (v.empty() ? "" : (std::string(" ") + a.fgGray() + v + a.reset())) + a.reset());
-    line(std::string(a.dim()) + s.subtitle() + a.reset());
-    line(std::string(a.dim()) + s.hintKeys() + a.reset());
+    line(clipIfNoAnsi(std::string(a.bold()) + s.title() + (v.empty() ? "" : (std::string(" ") + a.fgGray() + v + a.reset())) + a.reset(), cols, a));
+    line(clipIfNoAnsi(std::string(a.dim()) + s.subtitle() + a.reset(), cols, a));
+    line(clipIfNoAnsi(std::string(a.dim()) + s.hintKeys() + a.reset(), cols, a));
     line("");
 
     struct Row {
@@ -703,7 +728,8 @@ void draw(const TermSize& ts, const Strings& s, const Ansi& a, const std::string
     for (int i = 0; i < static_cast<int>(rows.size()); ++i) {
         const auto& r = rows[i];
         if (r.label.empty() && r.value.empty()) {
-            line(std::string(a.fgGray()) + "────────────────────────────────────────" + a.reset());
+            const int ruleWidth = std::max(10, cols - 2);
+            line(std::string(a.fgGray()) + repeatChar("─", ruleWidth) + a.reset());
             continue;
         }
 
@@ -734,9 +760,9 @@ void draw(const TermSize& ts, const Strings& s, const Ansi& a, const std::string
     line("");
     if (!m.status.empty()) {
         if (m.statusIsError) {
-            line(std::string(a.fgRed()) + m.status + a.reset());
+            line(clipIfNoAnsi(std::string(a.fgRed()) + m.status + a.reset(), cols, a));
         } else {
-            line(std::string(a.fgYellow()) + m.status + a.reset());
+            line(clipIfNoAnsi(std::string(a.fgYellow()) + m.status + a.reset(), cols, a));
         }
     } else {
         line(std::string(a.fgGray()) + s.statusReady() + a.reset());

@@ -66,7 +66,15 @@ if ($InstallDeps) {
     & "$PSScriptRoot\scripts\install_deps_windows.ps1"
 }
 
-if ($Interactive) {
+# Auto TUI when script is launched with no explicit parameters from an interactive console.
+$autoTui = $false
+if (-not $Interactive) {
+    if ($PSBoundParameters.Count -eq 0 -and $Host.Name -eq "ConsoleHost") {
+        $autoTui = $true
+    }
+}
+
+if ($Interactive -or $autoTui) {
     # Bootstrap-build and run the interactive TUI builder/installer.
     $bootstrapDir = Join-Path $PSScriptRoot "build\bootstrap"
     if (!(Test-Path $bootstrapDir)) {
