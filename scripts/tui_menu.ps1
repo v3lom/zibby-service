@@ -9,6 +9,7 @@ if (!(Test-Path $bootstrapDir)) {
 $cmakeArgs = @(
     "-S", $root,
     "-B", $bootstrapDir,
+    "-DZIBBY_BOOTSTRAP_TUI_ONLY=ON",
     "-DZIBBY_ENABLE_TESTS=OFF",
     "-DZIBBY_ENABLE_CALLS=OFF",
     "-DZIBBY_ENABLE_PLUGINS=OFF",

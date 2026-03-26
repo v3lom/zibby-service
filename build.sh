@@ -24,6 +24,7 @@ if [[ "${TEST_ONLY}" == "0" && "${LEGACY}" == "0" && -t 1 ]]; then
     GEN_ARGS=("-G" "Ninja")
   fi
   cmake -S "${ROOT_DIR}" -B "${BOOTSTRAP_DIR}" "${GEN_ARGS[@]}" \
+    -DZIBBY_BOOTSTRAP_TUI_ONLY=ON \
     -DZIBBY_ENABLE_TESTS=OFF \
     -DZIBBY_ENABLE_CALLS=OFF \
     -DZIBBY_ENABLE_PLUGINS=OFF \

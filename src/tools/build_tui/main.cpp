@@ -115,6 +115,12 @@ struct Ansi {
     const char* showCursor() const { return enabled ? "\x1b[?25h" : ""; }
 };
 
+struct Glyphs {
+    bool unicode = true;
+    std::string rule;
+    std::string ellipsis;
+};
+
 enum class Key {
     None,
     Up,
@@ -145,6 +151,12 @@ bool enableVirtualTerminal() {
     return SetConsoleMode(hOut, mode) != 0;
 }
 
+bool setConsoleUtf8() {
+    // Best-effort: make cmd.exe handle UTF-8 text/box drawing.
+    // If it fails, we can still run with ASCII fallback.
+    return SetConsoleOutputCP(CP_UTF8) != 0 && SetConsoleCP(CP_UTF8) != 0;
+}
+
 bool isTtyStdout() {
     DWORD mode = 0;
     HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
@@ -152,6 +164,19 @@ bool isTtyStdout() {
         return false;
     }
     return GetConsoleMode(hOut, &mode) != 0;
+}
+
+bool isTtyStdin() {
+#ifdef _WIN32
+    DWORD mode = 0;
+    HANDLE hIn = GetStdHandle(STD_INPUT_HANDLE);
+    if (hIn == INVALID_HANDLE_VALUE || hIn == nullptr) {
+        return false;
+    }
+    return GetConsoleMode(hIn, &mode) != 0;
+#else
+    return ::isatty(STDIN_FILENO) != 0;
+#endif
 }
 
 struct WinConsoleRaw {
@@ -679,7 +704,7 @@ std::string repeatChar(const std::string& ch, int count) {
     return out;
 }
 
-std::string clipIfNoAnsi(const std::string& s, int maxCols, const Ansi& a) {
+std::string clipIfNoAnsi(const std::string& s, int maxCols, const Ansi& a, const Glyphs& g) {
     if (a.enabled) {
         return s;
     }
@@ -689,10 +714,14 @@ std::string clipIfNoAnsi(const std::string& s, int maxCols, const Ansi& a) {
     if (maxCols <= 1) {
         return s.substr(0, static_cast<std::size_t>(maxCols));
     }
-    return s.substr(0, static_cast<std::size_t>(maxCols - 1)) + "…";
+    const std::string& ell = g.ellipsis;
+    if (static_cast<int>(ell.size()) >= maxCols) {
+        return s.substr(0, static_cast<std::size_t>(maxCols));
+    }
+    return s.substr(0, static_cast<std::size_t>(maxCols - static_cast<int>(ell.size()))) + ell;
 }
 
-void draw(const TermSize& ts, const Strings& s, const Ansi& a, const std::string& version, const UiModel& m, int selected) {
+void draw(const TermSize& ts, const Strings& s, const Ansi& a, const Glyphs& g, const std::string& version, const UiModel& m, int selected) {
     const int cols = std::max(40, ts.cols);
 
     auto line = [&](const std::string& text) {
@@ -701,9 +730,9 @@ void draw(const TermSize& ts, const Strings& s, const Ansi& a, const std::string
 
     const std::string v = version.empty() ? "" : ("v" + version);
 
-    line(clipIfNoAnsi(std::string(a.bold()) + s.title() + (v.empty() ? "" : (std::string(" ") + a.fgGray() + v + a.reset())) + a.reset(), cols, a));
-    line(clipIfNoAnsi(std::string(a.dim()) + s.subtitle() + a.reset(), cols, a));
-    line(clipIfNoAnsi(std::string(a.dim()) + s.hintKeys() + a.reset(), cols, a));
+    line(clipIfNoAnsi(std::string(a.bold()) + s.title() + (v.empty() ? "" : (std::string(" ") + a.fgGray() + v + a.reset())) + a.reset(), cols, a, g));
+    line(clipIfNoAnsi(std::string(a.dim()) + s.subtitle() + a.reset(), cols, a, g));
+    line(clipIfNoAnsi(std::string(a.dim()) + s.hintKeys() + a.reset(), cols, a, g));
     line("");
 
     struct Row {
@@ -729,7 +758,7 @@ void draw(const TermSize& ts, const Strings& s, const Ansi& a, const std::string
         const auto& r = rows[i];
         if (r.label.empty() && r.value.empty()) {
             const int ruleWidth = std::max(10, cols - 2);
-            line(std::string(a.fgGray()) + repeatChar("─", ruleWidth) + a.reset());
+            line(std::string(a.fgGray()) + repeatChar(g.rule, ruleWidth) + a.reset());
             continue;
         }
 
@@ -760,9 +789,9 @@ void draw(const TermSize& ts, const Strings& s, const Ansi& a, const std::string
     line("");
     if (!m.status.empty()) {
         if (m.statusIsError) {
-            line(clipIfNoAnsi(std::string(a.fgRed()) + m.status + a.reset(), cols, a));
+            line(clipIfNoAnsi(std::string(a.fgRed()) + m.status + a.reset(), cols, a, g));
         } else {
-            line(clipIfNoAnsi(std::string(a.fgYellow()) + m.status + a.reset(), cols, a));
+            line(clipIfNoAnsi(std::string(a.fgYellow()) + m.status + a.reset(), cols, a, g));
         }
     } else {
         line(std::string(a.fgGray()) + s.statusReady() + a.reset());
@@ -961,11 +990,35 @@ int main(int argc, char** argv) {
     const fs::path root = findRepoRoot(start);
 
 #ifdef _WIN32
-    (void)enableVirtualTerminal();
+    const bool vtOk = enableVirtualTerminal();
+    (void)setConsoleUtf8();
 #endif
 
     Ansi ansi;
     ansi.enabled = isTtyStdout();
+
+    Glyphs glyphs;
+#ifdef _WIN32
+    const bool unicodeOk = (GetConsoleOutputCP() == CP_UTF8);
+#else
+    const bool unicodeOk = true;
+#endif
+    const char* forceAscii = std::getenv("ZIBBY_TUI_FORCE_ASCII");
+    glyphs.unicode = unicodeOk && !(forceAscii != nullptr && *forceAscii != '\0');
+    glyphs.rule = glyphs.unicode ? "─" : "-";
+    glyphs.ellipsis = glyphs.unicode ? "…" : "...";
+
+#ifdef _WIN32
+    // In classic cmd.exe, stdout is TTY but ANSI may still be unsupported unless VT is enabled.
+    if (!vtOk) {
+        ansi.enabled = false;
+    }
+#endif
+
+    if (!isTtyStdout() || !isTtyStdin()) {
+        std::cerr << "zibby-build-tui: requires an interactive terminal (TTY)" << std::endl;
+        return 2;
+    }
 
     Strings strings;
     strings.lang = detectLang();
@@ -977,8 +1030,16 @@ int main(int argc, char** argv) {
 
 #ifdef _WIN32
     WinConsoleRaw raw;
+    if (!raw.ok) {
+        std::cerr << "zibby-build-tui: failed to switch console to raw mode" << std::endl;
+        return 2;
+    }
 #else
     UnixRawMode raw;
+    if (!raw.ok) {
+        std::cerr << "zibby-build-tui: failed to switch terminal to raw mode" << std::endl;
+        return 2;
+    }
 #endif
 
     Screen screen;
@@ -996,10 +1057,14 @@ int main(int argc, char** argv) {
 
     while (true) {
         screen.clear();
-        draw(termSize(), strings, ansi, version, model, selected);
+        draw(termSize(), strings, ansi, glyphs, version, model, selected);
         std::cout.flush();
 
         const Key k = readKey();
+        if (k == Key::None) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(50));
+            continue;
+        }
         if (k == Key::Up) {
             selected = std::max(0, selected - 1);
             continue;
@@ -1037,7 +1102,7 @@ int main(int argc, char** argv) {
         auto runUpdateFlow = [&]() {
             setStatus(strings.statusRunning());
             screen.clear();
-            draw(termSize(), strings, ansi, version, model, selected);
+            draw(termSize(), strings, ansi, glyphs, version, model, selected);
             std::cout.flush();
 
             const auto st = gitCheckUpdates(root);
@@ -1062,7 +1127,7 @@ int main(int argc, char** argv) {
             // Confirmation screen
             setStatus(std::string(strings.msgUpdateAvailable()) + ". " + strings.msgConfirmPull());
             screen.clear();
-            draw(termSize(), strings, ansi, version, model, selected);
+            draw(termSize(), strings, ansi, glyphs, version, model, selected);
             std::cout.flush();
 
             while (true) {
@@ -1078,7 +1143,7 @@ int main(int argc, char** argv) {
 
             setStatus(strings.msgPulling());
             screen.clear();
-            draw(termSize(), strings, ansi, version, model, selected);
+            draw(termSize(), strings, ansi, glyphs, version, model, selected);
             std::cout.flush();
 
             if (!gitPullFastForward(root)) {
@@ -1093,7 +1158,7 @@ int main(int argc, char** argv) {
         auto runDepsFlow = [&]() {
             setStatus(strings.statusRunning());
             screen.clear();
-            draw(termSize(), strings, ansi, version, model, selected);
+            draw(termSize(), strings, ansi, glyphs, version, model, selected);
             std::cout.flush();
 
             const bool ok = runInstallDeps(root);
@@ -1103,7 +1168,7 @@ int main(int argc, char** argv) {
         auto runBuildFlow = [&]() {
             setStatus(strings.statusRunning());
             screen.clear();
-            draw(termSize(), strings, ansi, version, model, selected);
+            draw(termSize(), strings, ansi, glyphs, version, model, selected);
             std::cout.flush();
 
             std::string err;
