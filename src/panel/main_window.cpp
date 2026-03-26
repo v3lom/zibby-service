@@ -133,6 +133,11 @@ MainWindow::MainWindow(QWidget* parent)
         auto* openLogs = new QPushButton("Open log file", w);
         layout->addWidget(openData);
         layout->addWidget(openLogs);
+
+        apiLog_ = new QPlainTextEdit(w);
+        apiLog_->setReadOnly(true);
+        apiLog_->setMaximumBlockCount(500);
+        layout->addWidget(apiLog_);
         layout->addStretch(1);
 
         tabs->addTab(w, "Status");
