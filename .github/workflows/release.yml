@@ -1,0 +1,178 @@
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Tag name to publish (e.g. v1.2.3)
+        type: string
+        required: true
+
+concurrency:
+  group: release-${{ github.workflow }}-${{ github.ref || github.run_id }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+env:
+  BUILD_DIR: build-release
+  BUILD_TYPE: Release
+
+jobs:
+  build:
+    name: build (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake ninja-build pkg-config \
+            libboost-all-dev libssl-dev libsqlite3-dev \
+            rpm
+
+      - name: Setup Ninja (Windows)
+        if: runner.os == 'Windows'
+        uses: seanmiddleditch/gha-setup-ninja@v5
+
+      - name: Setup MSVC environment (Windows)
+        if: runner.os == 'Windows'
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Detect vcpkg root (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          if ($env:VCPKG_INSTALLATION_ROOT) {
+            "VCPKG_ROOT=$env:VCPKG_INSTALLATION_ROOT" | Out-File -FilePath $env:GITHUB_ENV -Append
+          } elseif (Test-Path "C:\\vcpkg") {
+            "VCPKG_ROOT=C:\\vcpkg" | Out-File -FilePath $env:GITHUB_ENV -Append
+          } else {
+            throw "vcpkg not found (VCPKG_INSTALLATION_ROOT is not set and C:\\vcpkg does not exist)"
+          }
+
+      - name: Cache vcpkg (Windows)
+        if: runner.os == 'Windows'
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ env.VCPKG_ROOT }}\installed
+            ${{ env.VCPKG_ROOT }}\downloads
+          key: vcpkg-${{ runner.os }}-x64-windows-boost-openssl-sqlite3
+
+      - name: Install dependencies via vcpkg (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          & "${env:VCPKG_ROOT}\\vcpkg.exe" install boost-filesystem boost-system boost-program-options openssl sqlite3 --triplet x64-windows
+
+      - name: Install Qt (Windows, for zibby-panel)
+        if: runner.os == 'Windows'
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: "6.6.2"
+          arch: "win64_msvc2019_64"
+          cache: true
+
+      - name: Install NSIS (Windows, for CPack NSIS)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          choco install -y nsis
+
+      - name: Configure (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          cmake -S . -B "${BUILD_DIR}" -G Ninja \
+            -DCMAKE_BUILD_TYPE="${BUILD_TYPE}" \
+            -DZIBBY_ENABLE_TESTS=ON \
+            -DZIBBY_ENABLE_CALLS=OFF \
+            -DZIBBY_ENABLE_PLUGINS=ON
+
+      - name: Configure (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $qtDirArg = @()
+          if ($env:Qt6_DIR) {
+            $qtDirArg = @("-DQt6_DIR=$env:Qt6_DIR")
+          } else {
+            Write-Host "Qt6_DIR is not set by install-qt-action; continuing with default CMake search"
+          }
+
+          cmake -S . -B "${env:BUILD_DIR}" -G Ninja @qtDirArg `
+            -DCMAKE_BUILD_TYPE="${env:BUILD_TYPE}" `
+            -DCMAKE_TOOLCHAIN_FILE="${env:VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake" `
+            -DZIBBY_ENABLE_TESTS=ON `
+            -DZIBBY_ENABLE_CALLS=OFF `
+            -DZIBBY_ENABLE_PLUGINS=ON `
+            -DZIBBY_ENABLE_PANEL=ON
+
+      - name: Build
+        run: cmake --build "${{ env.BUILD_DIR }}" --config "${{ env.BUILD_TYPE }}"
+
+      - name: Test
+        run: ctest --test-dir "${{ env.BUILD_DIR }}" -C "${{ env.BUILD_TYPE }}" --output-on-failure
+
+      - name: Package (CPack)
+        run: cpack --config "${{ env.BUILD_DIR }}/CPackConfig.cmake" -C "${{ env.BUILD_TYPE }}"
+
+      - name: Generate checksums (Linux)
+        if: runner.os == 'Linux'
+        run: bash scripts/generate_checksums.sh installers
+
+      - name: Generate checksums (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: ./scripts/generate_checksums.ps1 -ArtifactsDir installers
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ runner.os }}
+          if-no-files-found: error
+          path: |
+            installers/*
+
+  publish:
+    name: publish
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Resolve tag
+        id: tag
+        shell: bash
+        run: |
+          if [[ "${GITHUB_REF:-}" == refs/tags/* ]]; then
+            echo "tag=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create / update GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag.outputs.tag }}
+          generate_release_notes: true
+          prerelease: ${{ contains(steps.tag.outputs.tag, '-') }}
+          fail_on_unmatched_files: true
+          files: |
+            artifacts/**/*
