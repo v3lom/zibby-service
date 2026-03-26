@@ -79,7 +79,7 @@ struct Strings {
     const char* statusReady() const { return lang == Lang::Ru ? "Готово" : "Ready"; }
     const char* statusRunning() const { return lang == Lang::Ru ? "Выполняется..." : "Running..."; }
 
-    const char* msgNotGitRepo() const { return lang == Lang::Ru ? "Не похоже на git-репозиторий (.git не найден)" : "Not a git repository (.git not found)"; }
+    const char* msgNotGitRepo() const { return lang == Lang::Ru ? "Не похоже на git-репозиторий" : "Not a git repository"; }
     const char* msgGitNotFound() const { return lang == Lang::Ru ? "git не найден в PATH" : "git not found on PATH"; }
     const char* msgNoUpstream() const { return lang == Lang::Ru ? "У ветки нет upstream (origin/main?)" : "Branch has no upstream (origin/main?)"; }
 
@@ -93,6 +93,14 @@ struct Strings {
     const char* msgDepsDone() const { return lang == Lang::Ru ? "Зависимости: завершено" : "Dependencies: done"; }
     const char* msgBuildDone() const { return lang == Lang::Ru ? "Сборка: завершено" : "Build: done"; }
     const char* msgBuildFailed() const { return lang == Lang::Ru ? "Сборка: ошибка" : "Build: failed"; }
+
+    const char* msgDepsPrompt() const {
+        return lang == Lang::Ru
+            ? "Установить зависимости? Enter/Y=да • Esc/N=нет • A=с правами администратора"
+            : "Install dependencies? Enter/Y=yes • Esc/N=no • A=as Administrator";
+    }
+
+    const char* msgDepsRunning() const { return lang == Lang::Ru ? "Устанавливаю зависимости..." : "Installing dependencies..."; }
 
     const char* msgPressAny() const { return lang == Lang::Ru ? "Нажмите любую клавишу..." : "Press any key..."; }
 };
