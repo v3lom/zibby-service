@@ -40,6 +40,7 @@
 #ifdef _WIN32
 namespace {
 
+#ifndef ZIBBY_HAS_PANEL
 std::string exeDir() {
     char buffer[MAX_PATH] = {0};
     const DWORD len = GetModuleFileNameA(nullptr, buffer, MAX_PATH);
@@ -54,6 +55,7 @@ std::string exeDir() {
     }
     return path.substr(0, pos);
 }
+#endif
 
 void hideConsoleWindow() {
     HWND hwnd = GetConsoleWindow();
@@ -96,6 +98,7 @@ bool spawnDetachedSelf(const std::string& args) {
     return true;
 }
 
+#ifndef ZIBBY_HAS_PANEL
 std::string findInstallerExe(const std::string& baseDir) {
     namespace fs = boost::filesystem;
     std::vector<fs::path> roots;
@@ -143,6 +146,8 @@ void offerRunInstaller(const std::string& installerPath) {
         ShellExecuteA(nullptr, "open", installerPath.c_str(), nullptr, nullptr, SW_SHOWNORMAL);
     }
 }
+
+#endif
 
 } // namespace
 #endif
@@ -379,11 +384,14 @@ int main(int argc, char* argv[]) {
     zibby::core::ConfigManager configManager;
     const auto config = configManager.loadOrCreate();
 
-#ifdef ZIBBY_HAS_PANEL
     if (variables.count("panel") > 0) {
+#ifdef ZIBBY_HAS_PANEL
         return zibby::panel::runPanel(argc, argv);
-    }
+#else
+        std::cerr << "Panel is not available in this build (Qt6 not found at build time)" << '\n';
+        return 2;
 #endif
+    }
 
 #ifdef _WIN32
     if (variables.count("daemon") > 0) {
