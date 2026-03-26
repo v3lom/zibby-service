@@ -16,7 +16,12 @@
 #include <vector>
 
 #ifdef _WIN32
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#ifndef NOMINMAX
 #define NOMINMAX
+#endif
 #include <windows.h>
 #else
 #include <sys/ioctl.h>
@@ -555,11 +560,17 @@ GitUpdateStatus gitCheckUpdates(const fs::path& root) {
     return st;
 }
 
+#ifdef _WIN32
+bool spawnProcessDetached(const fs::path& exe, const std::vector<std::string>& args);
+#endif
+
 bool maybeSelfRebuildAndRestart(const fs::path& root, const Ansi& ansi) {
     // Best-effort: rebuild & restart after updating sources.
     // This is intended for the typical bootstrap build layout: build/bootstrap.
+    (void)root;
     fs::path exePath;
 #ifdef _WIN32
+    (void)ansi;
     wchar_t exeBuf[MAX_PATH] = {0};
     if (GetModuleFileNameW(nullptr, exeBuf, MAX_PATH) > 0) {
         exePath = fs::path(exeBuf);
@@ -665,7 +676,7 @@ void draw(const TermSize& ts, const Strings& s, const Ansi& a, const std::string
 
     const std::string v = version.empty() ? "" : ("v" + version);
 
-    line(std::string(a.bold()) + s.title() + (v.empty() ? "" : (" " + a.fgGray() + v + a.reset())) + a.reset());
+    line(std::string(a.bold()) + s.title() + (v.empty() ? "" : (std::string(" ") + a.fgGray() + v + a.reset())) + a.reset());
     line(std::string(a.dim()) + s.subtitle() + a.reset());
     line(std::string(a.dim()) + s.hintKeys() + a.reset());
     line("");
@@ -918,6 +929,8 @@ bool spawnProcessDetached(const fs::path& exe, const std::vector<std::string>& a
 } // namespace
 
 int main(int argc, char** argv) {
+    (void)argc;
+    (void)argv;
     const fs::path start = fs::current_path();
     const fs::path root = findRepoRoot(start);
 
