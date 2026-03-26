@@ -61,6 +61,8 @@ To build the panel with MSYS2/MinGW, install Qt6:
 
 ### Windows service / autostart
 
+- NSIS installer (when available) attempts to install + start the Windows Service during installation (best-effort; requires Administrator).
+
 - Install Windows Service (requires Administrator):
 
 ```powershell
