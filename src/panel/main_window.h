@@ -8,6 +8,7 @@ class QLabel;
 class QLineEdit;
 class QPlainTextEdit;
 class QPushButton;
+class QListWidget;
 class QSystemTrayIcon;
 class QTimer;
 
@@ -51,9 +52,9 @@ private:
     QLineEdit* peerSearch_ = nullptr;
     QPushButton* discoverBtn_ = nullptr;
     QPushButton* refreshPeersBtn_ = nullptr;
-    class QListWidget* peersList_ = nullptr;
+    QListWidget* peersList_ = nullptr;
     QLabel* chatTitle_ = nullptr;
-    class QListWidget* messagesList_ = nullptr;
+    QListWidget* messagesList_ = nullptr;
     QLineEdit* messageText_ = nullptr;
     QPushButton* sendBtn_ = nullptr;
     QTimer* peersTimer_ = nullptr;
