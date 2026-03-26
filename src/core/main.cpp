@@ -5,6 +5,12 @@
 #include "core/network.h"
 #include "core/profile.h"
 #include "core/service.h"
+#include "core/update_checker.h"
+
+#ifdef _WIN32
+#include "platform/windows/windows_service.h"
+#include "platform/windows/autostart.h"
+#endif
 
 #include "version.h"
 
@@ -15,14 +21,174 @@
 #include <boost/asio/ip/host_name.hpp>
 #include <boost/filesystem.hpp>
 
+#include <chrono>
+#include <cstdint>
+#include <ctime>
 #include <iostream>
+#include <thread>
+#include <vector>
 
 #ifdef _WIN32
 #include <windows.h>
+#include <shellapi.h>
+#endif
+
+#ifdef _WIN32
+namespace {
+
+std::string exeDir() {
+    char buffer[MAX_PATH] = {0};
+    const DWORD len = GetModuleFileNameA(nullptr, buffer, MAX_PATH);
+    if (len == 0 || len >= MAX_PATH) {
+        return {};
+    }
+
+    std::string path(buffer, buffer + len);
+    const auto pos = path.find_last_of("\\/");
+    if (pos == std::string::npos) {
+        return {};
+    }
+    return path.substr(0, pos);
+}
+
+void hideConsoleWindow() {
+    HWND hwnd = GetConsoleWindow();
+    if (hwnd != nullptr) {
+        ShowWindow(hwnd, SW_HIDE);
+    }
+    FreeConsole();
+}
+
+bool spawnDetachedSelf(const std::string& args) {
+    char buffer[MAX_PATH] = {0};
+    const DWORD len = GetModuleFileNameA(nullptr, buffer, MAX_PATH);
+    if (len == 0 || len >= MAX_PATH) {
+        return false;
+    }
+
+    std::string cmdLine = std::string("\"") + buffer + "\" " + args;
+    STARTUPINFOA si{};
+    si.cb = sizeof(si);
+    PROCESS_INFORMATION pi{};
+
+    const BOOL ok = CreateProcessA(
+        nullptr,
+        cmdLine.data(),
+        nullptr,
+        nullptr,
+        FALSE,
+        CREATE_NO_WINDOW | DETACHED_PROCESS,
+        nullptr,
+        nullptr,
+        &si,
+        &pi);
+
+    if (!ok) {
+        return false;
+    }
+
+    CloseHandle(pi.hThread);
+    CloseHandle(pi.hProcess);
+    return true;
+}
+
+bool launchPanelFromDir(const std::string& dir) {
+    const std::string panel = dir + "\\zibby-panel.exe";
+    if (GetFileAttributesA(panel.c_str()) == INVALID_FILE_ATTRIBUTES) {
+        return false;
+    }
+
+    HINSTANCE r = ShellExecuteA(nullptr, "open", panel.c_str(), nullptr, dir.c_str(), SW_SHOWNORMAL);
+    return reinterpret_cast<std::intptr_t>(r) > 32;
+}
+
+std::string findInstallerExe(const std::string& baseDir) {
+    namespace fs = boost::filesystem;
+    std::vector<fs::path> roots;
+    roots.push_back(fs::path(baseDir) / "installers");
+    roots.push_back(fs::path(baseDir) / ".." / "installers");
+
+    fs::path best;
+    std::time_t bestTime = 0;
+
+    for (const auto& root : roots) {
+        boost::system::error_code ec;
+        if (!fs::exists(root, ec) || !fs::is_directory(root, ec)) {
+            continue;
+        }
+        for (fs::directory_iterator it(root, ec); !ec && it != fs::directory_iterator(); ++it) {
+            const auto p = it->path();
+            if (!fs::is_regular_file(p, ec)) {
+                continue;
+            }
+            if (p.extension().string() != ".exe") {
+                continue;
+            }
+            const auto name = p.filename().string();
+            if (name.find("zibby") == std::string::npos) {
+                continue;
+            }
+            const auto t = fs::last_write_time(p, ec);
+            if (!ec && (best.empty() || t > bestTime)) {
+                best = p;
+                bestTime = t;
+            }
+        }
+    }
+
+    return best.empty() ? std::string{} : best.string();
+}
+
+void offerRunInstaller(const std::string& installerPath) {
+    const int res = MessageBoxA(
+        nullptr,
+        "zibby-service is not installed or GUI panel is missing.\n\nRun installer now?",
+        "zibby-service",
+        MB_YESNO | MB_ICONQUESTION);
+    if (res == IDYES) {
+        ShellExecuteA(nullptr, "open", installerPath.c_str(), nullptr, nullptr, SW_SHOWNORMAL);
+    }
+}
+
+} // namespace
 #endif
 
 int main(int argc, char* argv[]) {
 #ifdef _WIN32
+    // Windows launcher behavior:
+    // - No args: start service in background if needed and open Qt panel.
+    // - With args: keep console for CLI/TUI.
+    if (argc <= 1) {
+        hideConsoleWindow();
+
+        zibby::core::ConfigManager configManager;
+        const auto config = configManager.loadOrCreate();
+        zibby::core::Service service(config);
+
+        if (!service.pingRunningInstance()) {
+            spawnDetachedSelf("--daemon");
+            for (int i = 0; i < 25; ++i) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(100));
+                if (service.pingRunningInstance()) {
+                    break;
+                }
+            }
+        }
+
+        const auto dir = exeDir();
+        if (!dir.empty() && launchPanelFromDir(dir)) {
+            return 0;
+        }
+
+        const auto installer = findInstallerExe(dir);
+        if (!installer.empty()) {
+            offerRunInstaller(installer);
+        } else {
+            MessageBoxA(nullptr, "zibby-panel.exe not found and installer not located.", "zibby-service", MB_OK | MB_ICONWARNING);
+        }
+        return 0;
+    }
+
     SetConsoleOutputCP(CP_UTF8);
     HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
     if (hOut != INVALID_HANDLE_VALUE) {
@@ -40,8 +206,16 @@ int main(int argc, char* argv[]) {
     options.add_options()
         ("help,h", "Show help")
         ("daemon,d", "Run as daemon/background service")
+        ("service", "Run under Windows Service Control Manager")
+        ("install-service", "Install Windows service (requires admin)")
+        ("uninstall-service", "Uninstall Windows service (requires admin)")
+        ("start-service", "Start Windows service")
+        ("stop-service", "Stop Windows service")
+        ("enable-autostart", "Enable autostart for current user (HKCU Run -> --daemon)")
+        ("disable-autostart", "Disable autostart for current user (HKCU Run)")
         ("cli,c", "Connect CLI to running service")
         ("version,v", "Show version")
+        ("check-updates", "Check for updates (GitHub latest release)")
         ("api-info", "Show local API endpoint and token")
         ("send", "Send text message")
         ("edit", "Edit message by id")
@@ -85,8 +259,107 @@ int main(int argc, char* argv[]) {
         return 0;
     }
 
+#ifdef _WIN32
+    // Windows Service management commands (do not require config/db initialization).
+    if (variables.count("install-service") > 0) {
+        char exePath[MAX_PATH] = {0};
+        GetModuleFileNameA(nullptr, exePath, MAX_PATH);
+        const std::string binPath = std::string("\"") + exePath + "\" --service";
+
+        const auto r = zibby::platform::windows::installWindowsService(
+            "zibby-service",
+            "zibby-service",
+            binPath);
+        if (!r.ok) {
+            std::cerr << "Install service failed: " << r.error << '\n';
+            return 5;
+        }
+        std::cout << "Service installed" << '\n';
+        return 0;
+    }
+
+    if (variables.count("uninstall-service") > 0) {
+        const auto r = zibby::platform::windows::uninstallWindowsService("zibby-service");
+        if (!r.ok) {
+            std::cerr << "Uninstall service failed: " << r.error << '\n';
+            return 5;
+        }
+        std::cout << "Service uninstalled" << '\n';
+        return 0;
+    }
+
+    if (variables.count("start-service") > 0) {
+        const auto r = zibby::platform::windows::startWindowsService("zibby-service");
+        if (!r.ok) {
+            std::cerr << "Start service failed: " << r.error << '\n';
+            return 5;
+        }
+        std::cout << "Service start requested" << '\n';
+        return 0;
+    }
+
+    if (variables.count("stop-service") > 0) {
+        const auto r = zibby::platform::windows::stopWindowsService("zibby-service");
+        if (!r.ok) {
+            std::cerr << "Stop service failed: " << r.error << '\n';
+            return 5;
+        }
+        std::cout << "Service stop requested" << '\n';
+        return 0;
+    }
+
+    if (variables.count("enable-autostart") > 0) {
+        char exePath[MAX_PATH] = {0};
+        GetModuleFileNameA(nullptr, exePath, MAX_PATH);
+        const std::string cmd = std::string("\"") + exePath + "\" --daemon";
+        const auto r = zibby::platform::windows::enableAutostartRunKey("ZibbyService", cmd);
+        if (!r.ok) {
+            std::cerr << "Enable autostart failed: " << r.error << '\n';
+            return 6;
+        }
+        std::cout << "Autostart enabled (current user)" << '\n';
+        return 0;
+    }
+
+    if (variables.count("disable-autostart") > 0) {
+        const auto r = zibby::platform::windows::disableAutostartRunKey("ZibbyService");
+        if (!r.ok) {
+            std::cerr << "Disable autostart failed: " << r.error << '\n';
+            return 6;
+        }
+        std::cout << "Autostart disabled (current user)" << '\n';
+        return 0;
+    }
+#endif
+
     zibby::core::ConfigManager configManager;
     const auto config = configManager.loadOrCreate();
+
+#ifdef _WIN32
+    if (variables.count("daemon") > 0) {
+        // When started as a background process, don't keep an interactive console window.
+        hideConsoleWindow();
+    }
+#endif
+
+    if (variables.count("check-updates") > 0) {
+        const auto r = zibby::core::UpdateChecker::checkLatestRelease(config.updatesRepoUrl, ZIBBY_VERSION_STRING);
+        if (!r.ok) {
+            std::cerr << "Update check failed: " << r.error << '\n';
+            return 2;
+        }
+        std::cout << "latest=" << r.latestVersion << '\n';
+        std::cout << "current=" << ZIBBY_VERSION_STRING << '\n';
+        std::cout << "update_available=" << (r.updateAvailable ? "true" : "false") << '\n';
+        return 0;
+    }
+
+#ifdef _WIN32
+    if (variables.count("service") > 0) {
+        // Run as a real Windows service.
+        return zibby::platform::windows::runAsWindowsService(config);
+    }
+#endif
     zibby::core::Database database;
     zibby::core::Crypto crypto;
 

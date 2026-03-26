@@ -6,7 +6,10 @@
 #include "core/message.h"
 #include "core/network.h"
 #include "core/profile.h"
+#include "core/update_checker.h"
 #include "utils/logger.h"
+
+#include "version.h"
 
 #include <boost/asio.hpp>
 #include <boost/asio/ip/host_name.hpp>
@@ -17,6 +20,7 @@
 #include <random>
 #include <sstream>
 #include <string>
+#include <thread>
 
 namespace fs = boost::filesystem;
 
@@ -59,6 +63,13 @@ std::string loadOrCreateApiToken(const std::string& dataDir) {
 Service::Service(Config config)
     : config_(std::move(config)) {}
 
+void Service::requestStop() {
+    std::lock_guard<std::mutex> lock(runMutex_);
+    if (runningIo_ != nullptr) {
+        runningIo_->stop();
+    }
+}
+
 int Service::run(bool daemonMode) {
     const fs::path logPath = fs::path(config_.dataDir) / config_.logFile;
     if (!zibby::utils::Logger::instance().initialize(logPath.string())) {
@@ -68,6 +79,26 @@ int Service::run(bool daemonMode) {
     zibby::utils::Logger::instance().log(zibby::utils::LogLevel::Info, "Starting zibby-service");
     if (daemonMode) {
         zibby::utils::Logger::instance().log(zibby::utils::LogLevel::Info, "Daemon mode enabled");
+    }
+
+    if (config_.updatesEnabled) {
+        const auto repoUrl = config_.updatesRepoUrl;
+        std::thread([repoUrl]() {
+            const auto r = zibby::core::UpdateChecker::checkLatestRelease(repoUrl, ZIBBY_VERSION_STRING);
+            if (!r.ok) {
+                zibby::utils::Logger::instance().log(zibby::utils::LogLevel::Warn, std::string("Update check failed: ") + r.error);
+                return;
+            }
+            if (r.updateAvailable) {
+                zibby::utils::Logger::instance().log(
+                    zibby::utils::LogLevel::Info,
+                    std::string("Update available: latest=") + r.latestVersion + " current=" + ZIBBY_VERSION_STRING);
+            } else {
+                zibby::utils::Logger::instance().log(
+                    zibby::utils::LogLevel::Debug,
+                    std::string("No updates: latest=") + r.latestVersion + " current=" + ZIBBY_VERSION_STRING);
+            }
+        }).detach();
     }
 
     Database database;
@@ -87,7 +118,13 @@ int Service::run(bool daemonMode) {
     ProfileService profileService(database);
     profileService.ensureLocalProfile(boost::asio::ip::host_name());
 
+    const auto startedAt = std::chrono::steady_clock::now();
+
     boost::asio::io_context ioContext;
+    {
+        std::lock_guard<std::mutex> lock(runMutex_);
+        runningIo_ = &ioContext;
+    }
     Network network(ioContext, config_.listenPort);
     network.start();
 
@@ -112,12 +149,24 @@ int Service::run(bool daemonMode) {
                 auto buffer = std::make_shared<std::array<char, 32>>();
                 socket->async_read_some(
                     boost::asio::buffer(*buffer),
-                    [socket, buffer](const boost::system::error_code& readError, std::size_t bytesRead) {
+                    [&, socket, buffer, startedAt](const boost::system::error_code& readError, std::size_t bytesRead) {
                         if (readError || bytesRead == 0) {
                             return;
                         }
                         const std::string command(buffer->data(), bytesRead);
-                        const std::string response = (command.find("PING") == 0) ? "PONG\n" : "UNKNOWN\n";
+                        std::string response;
+                        if (command.find("PING") == 0) {
+                            response = "PONG\n";
+                        } else if (command.find("STATUS") == 0) {
+                            const auto now = std::chrono::steady_clock::now();
+                            const auto uptimeMs = std::chrono::duration_cast<std::chrono::milliseconds>(now - startedAt).count();
+                            response = "OK uptime_ms=" + std::to_string(uptimeMs) + "\n";
+                        } else if (command.find("STOP") == 0) {
+                            response = "STOPPING\n";
+                            ioContext.stop();
+                        } else {
+                            response = "UNKNOWN\n";
+                        }
                         boost::asio::async_write(*socket, boost::asio::buffer(response), [socket](const boost::system::error_code&, std::size_t) {});
                     });
             }
@@ -135,6 +184,11 @@ int Service::run(bool daemonMode) {
 
     ioContext.run();
     apiServer.stop();
+
+    {
+        std::lock_guard<std::mutex> lock(runMutex_);
+        runningIo_ = nullptr;
+    }
     return 0;
 }
 

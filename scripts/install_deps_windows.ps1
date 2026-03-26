@@ -36,8 +36,8 @@ function Install-MSYS2Deps {
         return
     }
 
-    Write-Host "Installing MSYS2 packages via pacman: toolchain, boost, openssl, sqlite3, ninja, nsis"
-    & $pacman -S --noconfirm --needed mingw-w64-x86_64-toolchain mingw-w64-x86_64-cmake mingw-w64-x86_64-ninja mingw-w64-x86_64-boost mingw-w64-x86_64-openssl mingw-w64-x86_64-sqlite3 mingw-w64-x86_64-nsis
+    Write-Host "Installing MSYS2 packages via pacman: toolchain, boost, openssl, sqlite3, ninja, nsis, qt6"
+    & $pacman -S --noconfirm --needed mingw-w64-x86_64-toolchain mingw-w64-x86_64-cmake mingw-w64-x86_64-ninja mingw-w64-x86_64-boost mingw-w64-x86_64-openssl mingw-w64-x86_64-sqlite3 mingw-w64-x86_64-nsis mingw-w64-x86_64-qt6-base
     if ($LASTEXITCODE -ne 0) {
         throw "pacman failed with exit code $LASTEXITCODE"
     }

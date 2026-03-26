@@ -28,6 +28,8 @@ option(BUILD_TUI "Enable TUI module" ON)
 option(USE_STATIC_LIBS "Link static libs when possible" OFF)
 option(USE_SQLCIPHER "Use SQLCipher-compatible SQLite build" OFF)
 
+option(ZIBBY_ENABLE_PANEL "Build Qt control panel (Windows beta UI)" ON)
+
 # Backward-compatible options
 option(ZIBBY_ENABLE_TESTS "Build tests" ${BUILD_TESTS})
 option(ZIBBY_ENABLE_PLUGINS "Enable plugin system" ${BUILD_PLUGINS})
@@ -70,6 +72,7 @@ set(ZIBBY_COMMON_SOURCES
     src/core/message.cpp
     src/core/profile.cpp
     src/core/network.cpp
+    src/core/update_checker.cpp
     src/cli/cli.cpp
     src/cli/commands.cpp
     src/cli/tui.cpp
@@ -78,13 +81,70 @@ set(ZIBBY_COMMON_SOURCES
 )
 
 if(WIN32)
-    list(APPEND ZIBBY_COMMON_SOURCES src/platform/windows/zibby_service.rc)
+    set(ZIBBY_ICON_PATH "${CMAKE_SOURCE_DIR}/assets/zibby-icon.ico")
+    configure_file(
+        "${CMAKE_SOURCE_DIR}/src/platform/windows/zibby_service.rc.in"
+        "${PROJECT_BINARY_DIR}/zibby_service.rc"
+        @ONLY
+    )
+    list(APPEND ZIBBY_COMMON_SOURCES "${PROJECT_BINARY_DIR}/zibby_service.rc")
+    list(APPEND ZIBBY_COMMON_SOURCES src/platform/windows/windows_service.cpp)
+    list(APPEND ZIBBY_COMMON_SOURCES src/platform/windows/autostart.cpp)
 endif()
 
 add_executable(zibby-service
     src/core/main.cpp
     ${ZIBBY_COMMON_SOURCES}
 )
+
+if(WIN32 AND ZIBBY_ENABLE_PANEL)
+    # Help CMake locate Qt6 when building with MSYS2/MinGW on Windows.
+    # This keeps the default behavior (auto-detect) but adds a common prefix.
+    if(EXISTS "C:/msys64/mingw64/lib/cmake/Qt6")
+        list(APPEND CMAKE_PREFIX_PATH "C:/msys64/mingw64")
+    endif()
+
+    find_package(Qt6 QUIET COMPONENTS Widgets Network)
+    if(Qt6_FOUND)
+        configure_file(
+            "${CMAKE_SOURCE_DIR}/src/platform/windows/zibby_panel.rc.in"
+            "${PROJECT_BINARY_DIR}/zibby_panel.rc"
+            @ONLY
+        )
+
+        add_executable(zibby-panel WIN32
+            src/panel/main.cpp
+            src/panel/main_window.cpp
+            src/panel/api_client.cpp
+            src/core/config.cpp
+            src/core/update_checker.cpp
+            "${PROJECT_BINARY_DIR}/zibby_panel.rc"
+        )
+
+        target_include_directories(zibby-panel
+            PRIVATE
+                ${CMAKE_CURRENT_SOURCE_DIR}/src
+                ${CMAKE_CURRENT_SOURCE_DIR}/include
+                "${PROJECT_BINARY_DIR}"
+        )
+
+        target_link_libraries(zibby-panel PRIVATE Qt6::Widgets Qt6::Network)
+
+        target_link_libraries(zibby-panel PRIVATE ${ZIBBY_BOOST_LIBS} OpenSSL::SSL OpenSSL::Crypto Threads::Threads)
+
+        if(WIN32)
+            target_link_libraries(zibby-panel PRIVATE ws2_32 mswsock)
+        endif()
+
+        target_compile_definitions(zibby-service PRIVATE ZIBBY_HAS_PANEL=1)
+
+        install(TARGETS zibby-panel
+            RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+        )
+    else()
+        message(WARNING "Qt6 not found: skipping zibby-panel build")
+    endif()
+endif()
 
 target_include_directories(zibby-service
     PRIVATE
@@ -121,7 +181,7 @@ target_link_libraries(zibby-service
 )
 
 if(WIN32)
-    target_link_libraries(zibby-service PRIVATE ws2_32 mswsock)
+    target_link_libraries(zibby-service PRIVATE ws2_32 mswsock advapi32 shell32)
 endif()
 
 install(TARGETS zibby-service
@@ -146,6 +206,14 @@ install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/assets/zibby-icon.ico
     DESTINATION ${CMAKE_INSTALL_DATADIR}/zibby
 )
 
+install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/assets/zibby-icon.png
+    DESTINATION ${CMAKE_INSTALL_DATADIR}/zibby
+)
+
+install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/LICENSE
+    DESTINATION ${CMAKE_INSTALL_DATADIR}/zibby
+)
+
 set(CPACK_PACKAGE_NAME "zibby-service")
 set(CPACK_PACKAGE_VENDOR "Zibby")
 set(CPACK_PACKAGE_CONTACT "security@zibby.local")
@@ -156,6 +224,22 @@ set(CPACK_GENERATOR "TGZ;ZIP")
 set(CPACK_PACKAGE_HOMEPAGE_URL "https://github.com/v3lom/zibby-service")
 set(CPACK_NSIS_DISPLAY_NAME "zibby-service")
 set(CPACK_PACKAGE_INSTALL_DIRECTORY "zibby-service")
+
+if(WIN32)
+    # Best-effort Windows service setup during install/uninstall.
+    # If the installer is not elevated, these commands will fail harmlessly.
+    set(CPACK_NSIS_EXTRA_INSTALL_COMMANDS [[
+        ; Try to install/start service (requires Administrator)
+        ExecWait '"$INSTDIR\\bin\\zibby-service.exe" --install-service'
+        ExecWait '"$INSTDIR\\bin\\zibby-service.exe" --start-service'
+    ]])
+
+    set(CPACK_NSIS_EXTRA_UNINSTALL_COMMANDS [[
+        ; Try to stop/uninstall service (ignore failures)
+        ExecWait '"$INSTDIR\\bin\\zibby-service.exe" --stop-service'
+        ExecWait '"$INSTDIR\\bin\\zibby-service.exe" --uninstall-service'
+    ]])
+endif()
 
 if(UNIX AND NOT APPLE)
     list(APPEND CPACK_GENERATOR "DEB;RPM")

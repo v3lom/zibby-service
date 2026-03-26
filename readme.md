@@ -43,9 +43,39 @@ zibby-service --help
 zibby-service --version
 zibby-service --daemon
 zibby-service --cli
+zibby-service --check-updates
 ```
 
 `--cli` connects to a running local daemon instance and checks service availability.
+
+### Windows launcher + Panel (beta)
+
+- On Windows, running `zibby-service.exe` **without arguments** acts as a launcher: it starts the daemon in background (if needed) and opens the Qt control panel (`zibby-panel.exe`) when available.
+- If the panel is missing, the launcher offers to run the installer (best-effort search in `installers/`).
+
+To build the panel with MSYS2/MinGW, install Qt6:
+
+```powershell
+./scripts/install_deps_windows.ps1
+```
+
+### Windows service / autostart
+
+- Install Windows Service (requires Administrator):
+
+```powershell
+zibby-service --install-service
+zibby-service --start-service
+zibby-service --stop-service
+zibby-service --uninstall-service
+```
+
+- Enable autostart for current user (no admin, uses HKCU Run -> `--daemon`):
+
+```powershell
+zibby-service --enable-autostart
+zibby-service --disable-autostart
+```
 
 ## Configuration
 
@@ -65,6 +95,11 @@ If config does not exist, it is created automatically on first start.
 	- Linux: `~/.local/share/zibby`
 - Log file: `zibby.log` in data directory.
 - User keys (`private.pem`, `public.pem`) are generated at first run.
+
+## Updates
+
+- The service and panel can check GitHub latest release (see `--check-updates`).
+- If your network/IP is rate-limited by GitHub API, set `ZIBBY_GITHUB_TOKEN` (or `GITHUB_TOKEN`) to use authenticated requests with higher limits.
 
 ## Security Notes
 

@@ -98,6 +98,14 @@ $cmakeConfigureArgs = @(
     "-DZIBBY_ENABLE_PLUGINS=$pluginsFlag"
 )
 
+# Help CMake locate MSYS2-provided packages (Qt6, etc.) in common setups.
+$msysMingw64 = Join-Path $env:SystemDrive "msys64\mingw64"
+if (Test-Path (Join-Path $msysMingw64 "lib\cmake\Qt6")) {
+    if (-not ($cmakeConfigureArgs -match "^-DCMAKE_PREFIX_PATH=")) {
+        $cmakeConfigureArgs += "-DCMAKE_PREFIX_PATH=$msysMingw64"
+    }
+}
+
 # Prefer Ninja if available; otherwise fall back to CMake default generator.
 if (Get-Command ninja -ErrorAction SilentlyContinue) {
     $cmakeConfigureArgs = @("-G", "Ninja") + $cmakeConfigureArgs
