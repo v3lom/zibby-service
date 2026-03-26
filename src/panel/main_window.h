@@ -22,6 +22,10 @@ public:
     explicit MainWindow(QWidget* parent = nullptr);
 
 private:
+    void handleRpcLine(const QString& rawJsonLine);
+    void refreshPeersUi();
+    void openPeerChat(const QString& peerId);
+    void refreshCurrentChatHistory();
     void loadConfigAndWire();
     void refreshServiceStatus();
     void startService();
@@ -41,10 +45,29 @@ private:
     QPlainTextEdit* networkText_ = nullptr;
 
     QPlainTextEdit* apiLog_ = nullptr;
-    QLineEdit* chatId_ = nullptr;
-    QLineEdit* fromId_ = nullptr;
-    QLineEdit* toId_ = nullptr;
+    // Messenger UI
+    QLineEdit* peerSearch_ = nullptr;
+    QPushButton* discoverBtn_ = nullptr;
+    QPushButton* refreshPeersBtn_ = nullptr;
+    class QListWidget* peersList_ = nullptr;
+    QLabel* chatTitle_ = nullptr;
+    class QListWidget* messagesList_ = nullptr;
     QLineEdit* messageText_ = nullptr;
+    QPushButton* sendBtn_ = nullptr;
+    QTimer* peersTimer_ = nullptr;
+    QString localProfileId_;
+    QString currentPeerId_;
+
+    struct PeerItem {
+        QString peerId;
+        QString name;
+        QString host;
+        int port = 0;
+        QString version;
+        QString lastSeen;
+    };
+
+    QVector<PeerItem> peers_;
 
     QPushButton* startBtn_ = nullptr;
     QPushButton* stopBtn_ = nullptr;
