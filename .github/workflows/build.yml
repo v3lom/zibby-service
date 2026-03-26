@@ -1,14 +1,51 @@
-name: build
+name: ci
 
 on:
   push:
-    branches: [ "main", "master", "develop" ]
-    tags: [ "v*" ]
+    branches: ["main", "master", "develop"]
   pull_request:
   workflow_dispatch:
+    inputs:
+      build_type:
+        description: CMake build type
+        type: choice
+        options: [Release, Debug]
+        default: Release
+      enable_tests:
+        description: Enable CTest
+        type: boolean
+        default: true
+      enable_panel:
+        description: Build Qt panel on Windows (requires Qt)
+        type: boolean
+        default: false
+      enable_calls:
+        description: Enable calls module
+        type: boolean
+        default: false
+      enable_plugins:
+        description: Enable plugins module
+        type: boolean
+        default: true
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  BUILD_DIR: build-ci
+  BUILD_TYPE: ${{ github.event.inputs.build_type || 'Release' }}
+  ENABLE_TESTS: ${{ github.event.inputs.enable_tests || 'true' }}
+  ENABLE_PANEL: ${{ github.event.inputs.enable_panel || 'false' }}
+  ENABLE_CALLS: ${{ github.event.inputs.enable_calls || 'false' }}
+  ENABLE_PLUGINS: ${{ github.event.inputs.enable_plugins || 'true' }}
 
 jobs:
   lint:
+    name: lint (linux)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -16,27 +53,34 @@ jobs:
 
       - name: Install linters
         run: |
-          sudo apt update
-          sudo apt install -y cppcheck clang-tidy cmake ninja-build libboost-all-dev libssl-dev libsqlite3-dev
+          sudo apt-get update
+          sudo apt-get install -y cppcheck clang-tidy cmake ninja-build pkg-config \
+            libboost-all-dev libssl-dev libsqlite3-dev
 
       - name: Run cppcheck
         run: |
-          cppcheck --enable=warning,performance,portability --error-exitcode=1 --inline-suppr --quiet src include
+          cppcheck --enable=warning,performance,portability \
+            --error-exitcode=1 --inline-suppr --quiet src include
 
-      - name: Configure for clang-tidy
-        run: cmake -S . -B build-lint -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+      - name: Configure (compile_commands.json for clang-tidy)
+        run: |
+          cmake -S . -B build-lint -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+            -DZIBBY_ENABLE_TESTS=OFF
 
       - name: Run clang-tidy (core module)
         run: |
-          find src/core -name "*.cpp" -print0 | xargs -0 -r clang-tidy -p build-lint -checks='-*,bugprone-*,performance-*,security-*'
+          find src/core -name "*.cpp" -print0 | xargs -0 -r \
+            clang-tidy -p build-lint -checks='-*,bugprone-*,performance-*,security-*'
 
   build:
+    name: build (${{ matrix.os }})
     needs: lint
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest]
-        build_type: [Release]
 
     runs-on: ${{ matrix.os }}
 
@@ -44,41 +88,84 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install dependencies (Ubuntu)
+      - name: Install dependencies (Linux)
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential cmake ninja-build libboost-all-dev libssl-dev libsqlite3-dev doxygen graphviz
+          sudo apt-get install -y build-essential cmake ninja-build pkg-config \
+            libboost-all-dev libssl-dev libsqlite3-dev \
+            rpm
 
-      - name: Install dependencies (Windows)
+      - name: Setup Ninja (Windows)
+        if: runner.os == 'Windows'
+        uses: seanmiddleditch/gha-setup-ninja@v5
+
+      - name: Setup MSVC environment (Windows)
+        if: runner.os == 'Windows'
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Detect vcpkg root (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          choco install -y doxygen.install graphviz ninja
-          vcpkg install boost-filesystem boost-system boost-program-options openssl sqlite3 --triplet x64-windows
+          if ($env:VCPKG_INSTALLATION_ROOT) {
+            "VCPKG_ROOT=$env:VCPKG_INSTALLATION_ROOT" | Out-File -FilePath $env:GITHUB_ENV -Append
+          } elseif (Test-Path "C:\\vcpkg") {
+            "VCPKG_ROOT=C:\\vcpkg" | Out-File -FilePath $env:GITHUB_ENV -Append
+          } else {
+            throw "vcpkg not found (VCPKG_INSTALLATION_ROOT is not set and C:\\vcpkg does not exist)"
+          }
 
-      - name: Configure
+      - name: Cache vcpkg (Windows)
+        if: runner.os == 'Windows'
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ env.VCPKG_ROOT }}\installed
+            ${{ env.VCPKG_ROOT }}\downloads
+          key: vcpkg-${{ runner.os }}-x64-windows-boost-openssl-sqlite3
+
+      - name: Install dependencies via vcpkg (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          & "${env:VCPKG_ROOT}\\vcpkg.exe" install boost-filesystem boost-system boost-program-options openssl sqlite3 --triplet x64-windows
+
+      - name: Configure (Linux)
         if: runner.os == 'Linux'
-        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DZIBBY_ENABLE_TESTS=ON -G Ninja
+        run: |
+          cmake -S . -B "${BUILD_DIR}" -G Ninja \
+            -DCMAKE_BUILD_TYPE="${BUILD_TYPE}" \
+            -DZIBBY_ENABLE_TESTS=$([[ "${ENABLE_TESTS}" == "true" ]] && echo ON || echo OFF) \
+            -DZIBBY_ENABLE_CALLS=$([[ "${ENABLE_CALLS}" == "true" ]] && echo ON || echo OFF) \
+            -DZIBBY_ENABLE_PLUGINS=$([[ "${ENABLE_PLUGINS}" == "true" ]] && echo ON || echo OFF)
 
       - name: Configure (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
-        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DZIBBY_ENABLE_TESTS=ON -G Ninja -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake"
+        run: |
+          $tests = if ("${env:ENABLE_TESTS}" -eq "true") { "ON" } else { "OFF" }
+          $calls = if ("${env:ENABLE_CALLS}" -eq "true") { "ON" } else { "OFF" }
+          $plugins = if ("${env:ENABLE_PLUGINS}" -eq "true") { "ON" } else { "OFF" }
+          $panel = if ("${env:ENABLE_PANEL}" -eq "true") { "ON" } else { "OFF" }
+
+          cmake -S . -B "${env:BUILD_DIR}" -G Ninja `
+            -DCMAKE_BUILD_TYPE="${env:BUILD_TYPE}" `
+            -DCMAKE_TOOLCHAIN_FILE="${env:VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake" `
+            -DZIBBY_ENABLE_TESTS=$tests `
+            -DZIBBY_ENABLE_CALLS=$calls `
+            -DZIBBY_ENABLE_PLUGINS=$plugins `
+            -DZIBBY_ENABLE_PANEL=$panel
 
       - name: Build
-        run: cmake --build build --config ${{ matrix.build_type }}
+        run: cmake --build "${{ env.BUILD_DIR }}" --config "${{ env.BUILD_TYPE }}"
 
       - name: Test
-        run: ctest --test-dir build -C ${{ matrix.build_type }} --output-on-failure
+        if: env.ENABLE_TESTS == 'true'
+        run: ctest --test-dir "${{ env.BUILD_DIR }}" -C "${{ env.BUILD_TYPE }}" --output-on-failure
 
-      - name: Package
-        if: runner.os == 'Windows'
-        run: cpack --config build/CPackConfig.cmake -C ${{ matrix.build_type }}
-
-      - name: Package
-        if: runner.os == 'Linux'
-        run: cpack --config build/CPackConfig.cmake -C ${{ matrix.build_type }}
+      - name: Package (CPack)
+        run: cpack --config "${{ env.BUILD_DIR }}/CPackConfig.cmake" -C "${{ env.BUILD_TYPE }}"
 
       - name: Generate checksums (Linux)
         if: runner.os == 'Linux'
@@ -92,23 +179,7 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: zibby-${{ runner.os }}-${{ matrix.build_type }}
+          name: zibby-${{ runner.os }}-${{ env.BUILD_TYPE }}
+          if-no-files-found: error
           path: |
             installers/*
-
-  prerelease:
-    if: startsWith(github.ref, 'refs/tags/v')
-    needs: build
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Download all artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: artifacts
-
-      - name: Create prerelease
-        uses: softprops/action-gh-release@v2
-        with:
-          generate_release_notes: true
-          files: artifacts/**/*

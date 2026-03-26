@@ -4,7 +4,7 @@ set -euo pipefail
 if command -v apt >/dev/null 2>&1; then
   sudo apt update
   sudo apt install -y build-essential cmake ninja-build pkg-config \
-    libboost-all-dev libssl-dev libsqlite3-dev catch2 cpack
+    libboost-all-dev libssl-dev libsqlite3-dev catch2
 elif command -v pacman >/dev/null 2>&1; then
   sudo pacman -Sy --noconfirm base-devel cmake ninja pkgconf \
     boost openssl sqlite catch2
