@@ -320,6 +320,11 @@ MainWindow::MainWindow(QWidget* parent)
 
     connect(api_, &ApiClient::statusChanged, this, [this](const QString& s) {
         apiLog_->appendPlainText("[api] " + s);
+
+        if (s == "authed") {
+            api_->requestProfileGet();
+            api_->requestPeersList(200);
+        }
     });
     connect(api_, &ApiClient::rpcResponse, this, [this](const QString& line) { handleRpcLine(line); });
 
@@ -361,9 +366,6 @@ void MainWindow::loadConfigAndWire() {
     api_->setEndpoint(apiEndpoint_);
     api_->setToken(apiToken_);
     api_->connectAndLogin();
-
-    api_->requestProfileGet();
-    api_->requestPeersList(200);
 }
 
 void MainWindow::handleRpcLine(const QString& rawJsonLine) {
