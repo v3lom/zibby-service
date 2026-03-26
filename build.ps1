@@ -11,6 +11,31 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+function Get-RepoRoot {
+    return (Resolve-Path $PSScriptRoot).Path
+}
+
+function Add-MsysToPathIfPresent {
+    $repo = Get-RepoRoot
+    $candidates = @(
+        (Join-Path $repo "tools\msys64"),
+        "$env:SystemDrive\msys64",
+        (Join-Path $env:USERPROFILE "msys64"),
+        "$env:SystemDrive\tools\msys64"
+    )
+
+    foreach ($root in $candidates) {
+        $usr = Join-Path $root "usr\bin"
+        $mingw = Join-Path $root "mingw64\bin"
+        if (Test-Path (Join-Path $usr "bash.exe")) {
+            if ($env:PATH -notlike "*$mingw*") { $env:PATH = "$mingw;$env:PATH" }
+            if ($env:PATH -notlike "*$usr*") { $env:PATH = "$usr;$env:PATH" }
+            return $root
+        }
+    }
+    return $null
+}
+
 function Test-IsAdmin {
     try {
         $id = [Security.Principal.WindowsIdentity]::GetCurrent()
@@ -62,6 +87,9 @@ function Invoke-ElevatedPowerShell {
 
 function Ensure-WindowsPrereqs {
     # Minimal prerequisites to run CMake bootstrap and full build.
+    # First, try to pick up MSYS2-provided tools if MSYS2 is already installed.
+    [void](Add-MsysToPathIfPresent)
+
     $missing = @()
     if (-not (Get-Command cmake -ErrorAction SilentlyContinue)) { $missing += "cmake" }
     if (-not (Get-Command git -ErrorAction SilentlyContinue)) { $missing += "git" }
@@ -71,7 +99,7 @@ function Ensure-WindowsPrereqs {
     }
 
     Write-Host "Missing tools: $($missing -join ', ')"
-    $ok = Prompt-YesNo -Question "Install required dependencies automatically? (will request administrator rights)" -DefaultYes $true
+    $ok = Prompt-YesNo -Question "Install required dependencies automatically? (downloads MSYS2 + packages; no winget/choco)" -DefaultYes $true
     if (-not $ok) {
         throw "Required tools are missing: $($missing -join ', ')"
     }
@@ -81,21 +109,14 @@ function Ensure-WindowsPrereqs {
         throw "Dependency installer not found: $depsScript"
     }
 
-    if (Test-IsAdmin) {
-        & $depsScript
-        if ($LASTEXITCODE -ne 0) {
-            throw "Dependency installer failed ($LASTEXITCODE)"
-        }
-        return
-    }
-
-    Write-Host "Requesting administrator permissions (UAC)..."
-    $exit = Invoke-ElevatedPowerShell -ScriptPath $depsScript
-    if ($exit -ne 0) {
-        throw "Dependency installer failed ($exit)"
+    # Prefer per-user / repo-local install to avoid requiring admin.
+    & $depsScript
+    if ($LASTEXITCODE -ne 0) {
+        throw "Dependency installer failed ($LASTEXITCODE)"
     }
 
     # Re-check after installation.
+    [void](Add-MsysToPathIfPresent)
     if (-not (Get-Command cmake -ErrorAction SilentlyContinue)) { throw "cmake is still not available after install" }
     if (-not (Get-Command git -ErrorAction SilentlyContinue)) { throw "git is still not available after install" }
 }
@@ -153,16 +174,12 @@ function Show-YesNo([string]$caption, [bool]$default = $true) {
 
 if ($InstallDeps) {
     $depsScript = Join-Path $PSScriptRoot "scripts\install_deps_windows.ps1"
-    if (Test-IsAdmin) {
-        & $depsScript
-        exit $LASTEXITCODE
-    }
-    $ok = Prompt-YesNo -Question "Install dependencies now? (will request administrator rights)" -DefaultYes $true
+    $ok = Prompt-YesNo -Question "Install dependencies now?" -DefaultYes $true
     if (-not $ok) {
         exit 2
     }
-    $exit = Invoke-ElevatedPowerShell -ScriptPath $depsScript
-    exit $exit
+    & $depsScript
+    exit $LASTEXITCODE
 }
 
 # Auto TUI when script is launched with no explicit parameters from an interactive console.
@@ -215,6 +232,10 @@ if ($Interactive -or $autoTui) {
     if (!(Test-Path $tuiExe)) {
         throw "Bootstrap TUI executable not found: $tuiExe"
     }
+
+    # Convenience: keep a copy in repo root so it can be started without .bat/.ps1.
+    $rootExe = Join-Path $PSScriptRoot "zibby-build-tui.exe"
+    Copy-Item -Force $tuiExe $rootExe
 
     & $tuiExe
     exit $LASTEXITCODE
