@@ -1,6 +1,7 @@
 param(
     [switch]$InstallDeps,
     [switch]$TestOnly,
+    [switch]$BootstrapTuiOnly,
     [string]$BuildType = "Release",
     [bool]$EnableTests = $true,
     [bool]$EnableCalls = $false,
@@ -239,6 +240,40 @@ if ($Interactive -or $autoTui) {
 
     & $tuiExe
     exit $LASTEXITCODE
+} elseif ($BootstrapTuiOnly) {
+    Ensure-WindowsPrereqs
+    $bootstrapDir = Join-Path $PSScriptRoot "build\bootstrap"
+    if (!(Test-Path $bootstrapDir)) {
+        New-Item -ItemType Directory -Path $bootstrapDir | Out-Null
+    }
+
+    $cmakeArgs = @(
+        "-S", ".",
+        "-B", $bootstrapDir,
+        "-DZIBBY_BOOTSTRAP_TUI_ONLY=ON",
+        "-DZIBBY_ENABLE_TESTS=OFF",
+        "-DZIBBY_ENABLE_CALLS=OFF",
+        "-DZIBBY_ENABLE_PLUGINS=OFF",
+        "-DZIBBY_ENABLE_PANEL=OFF"
+    )
+
+    if (Get-Command ninja -ErrorAction SilentlyContinue) {
+        $cmakeArgs = @("-G", "Ninja") + $cmakeArgs
+    }
+
+    Invoke-External -FilePath "cmake" -Arguments $cmakeArgs
+    Invoke-External -FilePath "cmake" -Arguments @("--build", $bootstrapDir, "--target", "zibby-build-tui")
+
+    $tuiExe = Join-Path $bootstrapDir "zibby-build-tui.exe"
+    if (!(Test-Path $tuiExe)) {
+        throw "Bootstrap TUI executable not found: $tuiExe"
+    }
+
+    $rootExe = Join-Path $PSScriptRoot "zibby-build-tui.exe"
+    Copy-Item -Force $tuiExe $rootExe
+
+    Write-Host "Built: $rootExe"
+    exit 0
 } else {
     Ensure-WindowsPrereqs
     $buildType = $BuildType
