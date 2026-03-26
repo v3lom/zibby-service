@@ -50,8 +50,14 @@ zibby-service --check-updates
 
 ### Windows launcher + Panel (beta)
 
-- On Windows, running `zibby-service.exe` **without arguments** acts as a launcher: it starts the daemon in background (if needed) and opens the Qt control panel (`zibby-panel.exe`) when available.
-- If the panel is missing, the launcher offers to run the installer (best-effort search in `installers/`).
+- On Windows, running `zibby-service.exe` **without arguments** acts as a launcher:
+	- if the service is NOT running: starts the daemon in background and exits
+	- if the service IS running: opens the embedded Qt control panel (full build)
+- You can also force-open the panel (full build):
+
+```powershell
+zibby-service --panel
+```
 
 To build the panel with MSYS2/MinGW, install Qt6:
 
@@ -61,7 +67,16 @@ To build the panel with MSYS2/MinGW, install Qt6:
 
 ### Windows service / autostart
 
-- NSIS installer (when available) attempts to install + start the Windows Service during installation (best-effort; requires Administrator).
+- NSIS installer (when available) runs best-effort setup:
+	- tries to install + start the Windows Service (requires Administrator)
+	- if not elevated, falls back to enabling per-user autostart (HKCU Run -> `--daemon`)
+
+- Best-effort setup/cleanup (what the installer uses):
+
+```powershell
+zibby-service --install-best-effort
+zibby-service --uninstall-best-effort
+```
 
 - Install Windows Service (requires Administrator):
 
