@@ -19,32 +19,60 @@ int runPanel(int argc, char** argv) {
     QApplication::setStyle("Fusion");
 
     QPalette pal;
-    pal.setColor(QPalette::Window, QColor(18, 18, 18));
-    pal.setColor(QPalette::WindowText, QColor(240, 240, 240));
-    pal.setColor(QPalette::Base, QColor(24, 24, 24));
-    pal.setColor(QPalette::AlternateBase, QColor(30, 30, 30));
-    pal.setColor(QPalette::ToolTipBase, QColor(24, 24, 24));
-    pal.setColor(QPalette::ToolTipText, QColor(240, 240, 240));
-    pal.setColor(QPalette::Text, QColor(240, 240, 240));
-    pal.setColor(QPalette::Button, QColor(34, 34, 34));
-    pal.setColor(QPalette::ButtonText, QColor(240, 240, 240));
+    pal.setColor(QPalette::Window, QColor(16, 16, 16));
+    pal.setColor(QPalette::WindowText, QColor(242, 242, 242));
+    pal.setColor(QPalette::Base, QColor(22, 22, 22));
+    pal.setColor(QPalette::AlternateBase, QColor(28, 28, 28));
+    pal.setColor(QPalette::ToolTipBase, QColor(22, 22, 22));
+    pal.setColor(QPalette::ToolTipText, QColor(242, 242, 242));
+    pal.setColor(QPalette::Text, QColor(242, 242, 242));
+    pal.setColor(QPalette::Button, QColor(32, 32, 32));
+    pal.setColor(QPalette::ButtonText, QColor(242, 242, 242));
     pal.setColor(QPalette::BrightText, QColor(255, 80, 80));
-    pal.setColor(QPalette::Highlight, QColor(48, 48, 48));
+    pal.setColor(QPalette::Highlight, QColor(44, 44, 44));
     pal.setColor(QPalette::HighlightedText, QColor(255, 255, 255));
     app.setPalette(pal);
 
     app.setStyleSheet(
-        "QLineEdit, QPlainTextEdit, QListView {"
+        "QLineEdit, QPlainTextEdit {"
         "  border: 1px solid palette(mid);"
         "  border-radius: 8px;"
         "  padding: 6px 8px;"
         "  background: palette(base);"
+        "  selection-background-color: palette(highlight);"
+        "}"
+        "QListView {"
+        "  border: none;"
+        "  background: palette(base);"
+        "  outline: none;"
+        "}"
+        "QListView::item {"
+        "  border-radius: 10px;"
+        "}"
+        "QScrollBar:vertical {"
+        "  background: transparent;"
+        "  width: 10px;"
+        "  margin: 0px;"
+        "}"
+        "QScrollBar::handle:vertical {"
+        "  background: palette(mid);"
+        "  border-radius: 5px;"
+        "  min-height: 24px;"
+        "}"
+        "QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {"
+        "  height: 0px;"
+        "}"
+        "QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {"
+        "  background: transparent;"
         "}"
         "QPushButton {"
         "  border: 1px solid palette(mid);"
         "  border-radius: 8px;"
         "  padding: 6px 10px;"
         "  background: palette(button);"
+        "}"
+        "QPushButton:hover {"
+        "  border-color: palette(light);"
         "}"
         "QPushButton:pressed {"
         "  background: palette(dark);"

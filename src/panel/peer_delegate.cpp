@@ -28,9 +28,16 @@ void PeerDelegate::paint(QPainter* painter, const QStyleOptionViewItem& option, 
     initStyleOption(&opt, index);
 
     const bool selected = opt.state & QStyle::State_Selected;
+    const bool hovered = opt.state & QStyle::State_MouseOver;
     const QRect r = opt.rect;
 
-    const QColor bg = selected ? opt.palette.color(QPalette::Highlight) : opt.palette.color(QPalette::Base);
+    QColor bg = opt.palette.color(QPalette::Base);
+    if (hovered) {
+        bg = opt.palette.color(QPalette::AlternateBase);
+    }
+    if (selected) {
+        bg = opt.palette.color(QPalette::Highlight);
+    }
     painter->fillRect(r, bg);
 
     const QString title = index.data(PeerListModel::TitleRole).toString();
@@ -41,15 +48,13 @@ void PeerDelegate::paint(QPainter* painter, const QStyleOptionViewItem& option, 
     QRect avatarRect(r.left() + pad, r.top() + (r.height() - avatar) / 2, avatar, avatar);
 
     // Avatar circle
-    QColor avatarBg = opt.palette.color(QPalette::Button);
-    if (selected) {
-        avatarBg = opt.palette.color(QPalette::ButtonText);
-    }
+    QColor avatarBg = opt.palette.color(QPalette::Mid);
+    avatarBg.setAlphaF(selected ? 1.0 : 0.85);
     painter->setPen(Qt::NoPen);
     painter->setBrush(avatarBg);
     painter->drawEllipse(avatarRect);
 
-    painter->setPen(selected ? opt.palette.color(QPalette::HighlightedText) : opt.palette.color(QPalette::Text));
+    painter->setPen(opt.palette.color(QPalette::Text));
     QFont f = opt.font;
     f.setBold(true);
     painter->setFont(f);
@@ -61,12 +66,12 @@ void PeerDelegate::paint(QPainter* painter, const QStyleOptionViewItem& option, 
     QRect subRect(textX, r.top() + pad + 16, r.width() - textX - pad, 16);
 
     painter->setFont(opt.font);
-    painter->setPen(selected ? opt.palette.color(QPalette::HighlightedText) : opt.palette.color(QPalette::Text));
+    painter->setPen(opt.palette.color(QPalette::Text));
     painter->drawText(titleRect, Qt::AlignLeft | Qt::AlignVCenter, title);
 
     QColor subColor = opt.palette.color(QPalette::Text);
     subColor.setAlphaF(0.65);
-    painter->setPen(selected ? opt.palette.color(QPalette::HighlightedText) : subColor);
+    painter->setPen(subColor);
     painter->drawText(subRect, Qt::AlignLeft | Qt::AlignVCenter, subtitle);
 
     painter->restore();
@@ -74,7 +79,7 @@ void PeerDelegate::paint(QPainter* painter, const QStyleOptionViewItem& option, 
 
 QSize PeerDelegate::sizeHint(const QStyleOptionViewItem& option, const QModelIndex&) const {
     // Fixed-height row for clean minimal list.
-    return {option.rect.width(), 56};
+    return {option.rect.width(), 54};
 }
 
 } // namespace zibby::panel

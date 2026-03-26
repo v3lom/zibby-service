@@ -12,6 +12,32 @@ namespace zibby::panel {
 MessageDelegate::MessageDelegate(QObject* parent)
     : QStyledItemDelegate(parent) {}
 
+static QColor mixColors(const QColor& a, const QColor& b, qreal t) {
+    const qreal u = 1.0 - t;
+    return QColor(
+        static_cast<int>(a.red() * u + b.red() * t),
+        static_cast<int>(a.green() * u + b.green() * t),
+        static_cast<int>(a.blue() * u + b.blue() * t),
+        static_cast<int>(a.alpha() * u + b.alpha() * t));
+}
+
+static QColor bubbleBackground(const QPalette& pal, bool outgoing) {
+    const QColor base = pal.color(QPalette::Base);
+    const QColor alt = pal.color(QPalette::AlternateBase);
+    const QColor button = pal.color(QPalette::Button);
+    if (outgoing) {
+        // Slightly more "solid" bubble for outgoing.
+        return mixColors(button, base, 0.25);
+    }
+    return mixColors(alt, base, 0.15);
+}
+
+static QColor bubbleBorder(const QPalette& pal) {
+    QColor c = pal.color(QPalette::Mid);
+    c.setAlphaF(0.55);
+    return c;
+}
+
 static QRect bubbleRectFor(const QRect& r, int bubbleWidth, bool outgoing) {
     const int pad = 10;
     const int top = r.top() + 6;
@@ -31,10 +57,12 @@ void MessageDelegate::paint(QPainter* painter, const QStyleOptionViewItem& optio
     const QString text = index.data(MessageListModel::TextRole).toString();
     const QString time = index.data(MessageListModel::TimeRole).toString();
     const bool outgoing = index.data(MessageListModel::OutgoingRole).toBool();
+    const bool edited = index.data(MessageListModel::EditedRole).toBool();
+    const bool read = index.data(MessageListModel::ReadRole).toBool();
 
     const QRect r = option.rect;
     const int pad = 12;
-    const int maxBubble = static_cast<int>(r.width() * 0.72);
+    const int maxBubble = static_cast<int>(r.width() * 0.74);
 
     QFontMetrics fm(option.font);
     const int textWidth = qMin(maxBubble - pad * 2, qMax(80, fm.horizontalAdvance(text)));
@@ -53,23 +81,38 @@ void MessageDelegate::paint(QPainter* painter, const QStyleOptionViewItem& optio
     bubble.setHeight(bubbleH);
 
     // Colors: use palette roles (minimal hard-coded styling)
-    QColor bubbleBg = outgoing ? option.palette.color(QPalette::Button) : option.palette.color(QPalette::AlternateBase);
-    QColor textColor = option.palette.color(QPalette::Text);
+    const QColor bubbleBg = bubbleBackground(option.palette, outgoing);
+    const QColor textColor = option.palette.color(QPalette::Text);
 
-    painter->setPen(Qt::NoPen);
+    painter->setPen(QPen(bubbleBorder(option.palette), 1));
     painter->setBrush(bubbleBg);
-    painter->drawRoundedRect(bubble, 10, 10);
+    painter->drawRoundedRect(bubble, 12, 12);
 
     painter->setPen(textColor);
     QRect inner = bubble.adjusted(pad, pad, -pad, -pad - footerH);
     painter->drawText(inner, Qt::TextWordWrap | Qt::AlignLeft | Qt::AlignTop, text);
 
-    // Footer time
+    // Footer meta (time + status)
     QColor timeColor = textColor;
     timeColor.setAlphaF(0.6);
     painter->setPen(timeColor);
     QRect footer = bubble.adjusted(pad, bubble.height() - footerH - 2, -pad, -2);
-    painter->drawText(footer, Qt::AlignRight | Qt::AlignVCenter, time);
+
+    QString meta = time;
+    if (edited) {
+        if (!meta.isEmpty()) {
+            meta += " · ";
+        }
+        meta += "edited";
+    }
+    if (outgoing) {
+        const QString ticks = read ? QString::fromUtf8("✓✓") : QString::fromUtf8("✓");
+        if (!meta.isEmpty()) {
+            meta += "  ";
+        }
+        meta += ticks;
+    }
+    painter->drawText(footer, Qt::AlignRight | Qt::AlignVCenter, meta);
 
     painter->restore();
 }
@@ -78,7 +121,7 @@ QSize MessageDelegate::sizeHint(const QStyleOptionViewItem& option, const QModel
     const QString text = index.data(MessageListModel::TextRole).toString();
     const QRect r = option.rect;
     const int width = r.width() > 0 ? r.width() : 480;
-    const int maxBubble = static_cast<int>(width * 0.72);
+    const int maxBubble = static_cast<int>(width * 0.74);
     const int pad = 12;
 
     QFontMetrics fm(option.font);

@@ -2,7 +2,41 @@
 
 #ifdef ZIBBY_HAS_PANEL
 
+#include <QDateTime>
+
 namespace zibby::panel {
+
+namespace {
+
+QString formatTimeCompact(const QString& createdAt) {
+    const auto s = createdAt.trimmed();
+    if (s.isEmpty()) {
+        return {};
+    }
+
+    // Try ISO 8601 first.
+    QDateTime dt = QDateTime::fromString(s, Qt::ISODateWithMs);
+    if (!dt.isValid()) {
+        dt = QDateTime::fromString(s, Qt::ISODate);
+    }
+    if (dt.isValid()) {
+        if (dt.timeSpec() == Qt::UTC) {
+            dt = dt.toLocalTime();
+        }
+        return dt.time().toString("HH:mm");
+    }
+
+    // Fallback: keep only the last 5 chars if it looks like HH:MM.
+    if (s.size() >= 5) {
+        const QString tail = s.right(5);
+        if (tail.size() == 5 && tail.at(2) == ':') {
+            return tail;
+        }
+    }
+    return s;
+}
+
+} // namespace
 
 MessageListModel::MessageListModel(QObject* parent)
     : QAbstractListModel(parent) {}
@@ -31,7 +65,7 @@ QVariant MessageListModel::data(const QModelIndex& index, int role) const {
     case OutgoingRole:
         return m.outgoing;
     case TimeRole:
-        return m.createdAt;
+        return formatTimeCompact(m.createdAt);
     case FromRole:
         return m.from;
     case ToRole:

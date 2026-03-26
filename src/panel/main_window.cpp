@@ -16,6 +16,7 @@
 #include <QFile>
 #include <QFileInfo>
 #include <QDir>
+#include <QFrame>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QLineEdit>
@@ -237,12 +238,14 @@ MainWindow::MainWindow(QWidget* parent)
         auto* leftLayout = new QVBoxLayout(left);
         peerSearch_ = new QLineEdit(left);
         peerSearch_->setPlaceholderText("Search peers...");
-        discoverBtn_ = new QPushButton("Auto-discover", left);
-        refreshPeersBtn_ = new QPushButton("Refresh list", left);
+        discoverBtn_ = new QPushButton("Discover", left);
+        refreshPeersBtn_ = new QPushButton("Refresh", left);
         peersView_ = new QListView(left);
         peersView_->setSelectionMode(QAbstractItemView::SingleSelection);
         peersView_->setUniformItemSizes(true);
         peersView_->setVerticalScrollMode(QAbstractItemView::ScrollPerPixel);
+        peersView_->setFrameShape(QFrame::NoFrame);
+        peersView_->setMouseTracking(true);
 
         peersModel_ = new PeerListModel(this);
         peersProxy_ = new PeerFilterProxyModel(this);
@@ -253,8 +256,10 @@ MainWindow::MainWindow(QWidget* parent)
         peersView_->setItemDelegate(new PeerDelegate(peersView_));
 
         leftLayout->addWidget(peerSearch_);
-        leftLayout->addWidget(discoverBtn_);
-        leftLayout->addWidget(refreshPeersBtn_);
+        auto* peerBtns = new QHBoxLayout();
+        peerBtns->addWidget(discoverBtn_);
+        peerBtns->addWidget(refreshPeersBtn_);
+        leftLayout->addLayout(peerBtns);
         leftLayout->addWidget(peersView_, 1);
 
         // Right: chat
@@ -274,6 +279,7 @@ MainWindow::MainWindow(QWidget* parent)
         messagesView_->setWordWrap(true);
         messagesView_->setSpacing(6);
         messagesView_->setResizeMode(QListView::Adjust);
+        messagesView_->setFrameShape(QFrame::NoFrame);
 
         messagesModel_ = new MessageListModel(this);
         messagesView_->setModel(messagesModel_);
@@ -313,8 +319,13 @@ MainWindow::MainWindow(QWidget* parent)
             }
             const QModelIndex src = peersProxy_ ? peersProxy_->mapToSource(current) : current;
             const QString peerId = src.data(PeerListModel::PeerIdRole).toString();
+            const QString title = src.data(PeerListModel::TitleRole).toString();
             if (!peerId.isEmpty()) {
-                openPeerChat(peerId);
+                currentPeerId_ = peerId;
+                if (chatTitle_) {
+                    chatTitle_->setText(title.isEmpty() ? ("Chat: " + peerId) : title);
+                }
+                refreshCurrentChatHistory();
             }
         });
         connect(sendBtn_, &QPushButton::clicked, this, [this]() {
