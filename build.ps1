@@ -5,6 +5,7 @@ param(
     [bool]$EnableTests = $true,
     [bool]$EnableCalls = $false,
     [bool]$EnablePlugins = $true,
+    [bool]$EnablePanel = $true,
     [switch]$Interactive
 )
 
@@ -70,11 +71,13 @@ if ($Interactive) {
     $enableTests = Show-YesNo "Enable tests?"
     $enableCalls = Show-YesNo "Enable calls module?" $false
     $enablePlugins = Show-YesNo "Enable plugins module?"
+    $enablePanel = Show-YesNo "Enable embedded Qt panel (full build)?"
 } else {
     $buildType = $BuildType
     $enableTests = $EnableTests
     $enableCalls = $EnableCalls
     $enablePlugins = $EnablePlugins
+    $enablePanel = $EnablePanel
 }
 
 $buildDir = Join-Path $PSScriptRoot "build"
@@ -89,13 +92,15 @@ Write-Host "Configuring with BuildType=$buildType, Tests=$enableTests, Calls=$en
 $testsFlag = if ($enableTests) { "ON" } else { "OFF" }
 $callsFlag = if ($enableCalls) { "ON" } else { "OFF" }
 $pluginsFlag = if ($enablePlugins) { "ON" } else { "OFF" }
+$panelFlag = if ($enablePanel) { "ON" } else { "OFF" }
 
 $cmakeConfigureArgs = @(
     "..",
     "-DCMAKE_BUILD_TYPE=$buildType",
     "-DZIBBY_ENABLE_TESTS=$testsFlag",
     "-DZIBBY_ENABLE_CALLS=$callsFlag",
-    "-DZIBBY_ENABLE_PLUGINS=$pluginsFlag"
+    "-DZIBBY_ENABLE_PLUGINS=$pluginsFlag",
+    "-DZIBBY_ENABLE_PANEL=$panelFlag"
 )
 
 # Help CMake locate MSYS2-provided packages (Qt6, etc.) in common setups.
