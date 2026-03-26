@@ -109,12 +109,6 @@ if(WIN32 AND ZIBBY_ENABLE_PANEL)
         # Embed panel into zibby-service (single-exe distribution).
         set(CMAKE_AUTOMOC ON)
 
-        configure_file(
-            "${CMAKE_SOURCE_DIR}/src/platform/windows/zibby_panel.rc.in"
-            "${PROJECT_BINARY_DIR}/zibby_panel.rc"
-            @ONLY
-        )
-
         target_sources(zibby-service PRIVATE
             src/panel/main_window.h
             src/panel/main_window.cpp
@@ -122,7 +116,6 @@ if(WIN32 AND ZIBBY_ENABLE_PANEL)
             src/panel/api_client.cpp
             src/panel/panel_entry.h
             src/panel/panel_entry.cpp
-            "${PROJECT_BINARY_DIR}/zibby_panel.rc"
         )
 
         set_target_properties(zibby-service PROPERTIES
