@@ -29,6 +29,12 @@ Repository: https://github.com/v3lom/zibby-service
 ./build.ps1
 ```
 
+For a non-interactive bootstrap build of the TUI only:
+
+```powershell
+./build.ps1 -BootstrapTuiOnly
+```
+
 Notes:
 
 - `scripts/install_deps_windows.ps1` bootstraps **MSYS2 + MinGW64 toolchain** and installs `cmake`, `git`, `ninja`, Boost, OpenSSL, SQLite, NSIS via `pacman` (no `winget`/`choco` required).

@@ -105,15 +105,31 @@ function Ensure-WindowsPrereqs {
         throw "Required tools are missing: $($missing -join ', ')"
     }
 
+    $systemInstall = Prompt-YesNo -Question "Install system-wide to C:\\msys64 (requires Administrator/UAC)?" -DefaultYes $false
+
     $depsScript = Join-Path $PSScriptRoot "scripts\install_deps_windows.ps1"
     if (!(Test-Path $depsScript)) {
         throw "Dependency installer not found: $depsScript"
     }
 
-    # Prefer per-user / repo-local install to avoid requiring admin.
-    & $depsScript
-    if ($LASTEXITCODE -ne 0) {
-        throw "Dependency installer failed ($LASTEXITCODE)"
+    if ($systemInstall) {
+        $args = @("-NoPrompt", "-MsysRoot", "C:\\msys64")
+        if (Test-IsAdmin) {
+            & $depsScript @args
+            if ($LASTEXITCODE -ne 0) { throw "Dependency installer failed ($LASTEXITCODE)" }
+        } else {
+            Write-Host "Requesting administrator permissions (UAC)..."
+            $exit = Invoke-ElevatedPowerShell -ScriptPath $depsScript -ScriptArgs $args
+            if ($exit -ne 0) {
+                throw "Dependency installer failed ($exit)"
+            }
+        }
+    } else {
+        # Prefer per-user / repo-local install to avoid requiring admin.
+        & $depsScript -NoPrompt
+        if ($LASTEXITCODE -ne 0) {
+            throw "Dependency installer failed ($LASTEXITCODE)"
+        }
     }
 
     # Re-check after installation.
@@ -179,7 +195,18 @@ if ($InstallDeps) {
     if (-not $ok) {
         exit 2
     }
-    & $depsScript
+    $systemInstall = Prompt-YesNo -Question "Install system-wide to C:\\msys64 (requires Administrator/UAC)?" -DefaultYes $false
+    if ($systemInstall) {
+        $args = @("-NoPrompt", "-MsysRoot", "C:\\msys64")
+        if (Test-IsAdmin) {
+            & $depsScript @args
+            exit $LASTEXITCODE
+        }
+        $exit = Invoke-ElevatedPowerShell -ScriptPath $depsScript -ScriptArgs $args
+        exit $exit
+    }
+
+    & $depsScript -NoPrompt
     exit $LASTEXITCODE
 }
 
