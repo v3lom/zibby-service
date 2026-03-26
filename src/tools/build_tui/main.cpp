@@ -929,8 +929,23 @@ bool runInstallDeps(const fs::path& root) {
     if (!fs::exists(deps)) {
         return false;
     }
+    // Ask first (user intent), then request UAC elevation.
+    std::cout << "Install dependencies? Press Enter to continue (UAC prompt), Esc to cancel." << std::endl;
+    while (true) {
+        const Key k = readKey();
+        if (k == Key::Enter) {
+            break;
+        }
+        if (k == Key::Esc || k == Key::Quit) {
+            return false;
+        }
+    }
+
     std::ostringstream cmd;
-    cmd << "powershell -ExecutionPolicy Bypass -File " << shellQuote(deps.string());
+    cmd << "powershell -NoProfile -ExecutionPolicy Bypass -Command "
+        << shellQuote(
+               std::string("Start-Process PowerShell -Verb RunAs -Wait -ArgumentList '")
+               + "-NoProfile -ExecutionPolicy Bypass -File " + deps.string() + "'");
     return runSystem(cmd.str()) == 0;
 #else
     const fs::path deps = root / "scripts" / "install_deps_linux.sh";
