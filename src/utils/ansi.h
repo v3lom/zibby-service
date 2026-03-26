@@ -4,7 +4,15 @@
 #include <string>
 
 #ifdef _WIN32
+// Important: Boost.Asio requires winsock2.h to be included before windows.h.
+// This header is used from CLI/TUI code that also includes Boost.Asio.
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#ifndef NOMINMAX
 #define NOMINMAX
+#endif
+#include <winsock2.h>
 #include <windows.h>
 #else
 #include <unistd.h>
