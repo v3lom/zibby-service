@@ -21,7 +21,8 @@ public:
 
     void requestSystemPing();
     void requestProfileGet();
-    void requestPeersList();
+    void requestPeersList(int limit = 200);
+    void requestPeersDiscover(int timeoutMs = 1200);
     void requestMessageHistory(const QString& chatId, int limit);
     void requestMessageSend(const QString& chatId, const QString& from, const QString& to, const QString& text);
 

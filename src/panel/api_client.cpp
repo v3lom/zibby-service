@@ -144,7 +144,7 @@ void ApiClient::requestProfileGet() {
     sendJsonLine(toJsonLine(req));
 }
 
-void ApiClient::requestPeersList() {
+void ApiClient::requestPeersList(int limit) {
     if (!authed_) {
         emit statusChanged("error: not authed");
         return;
@@ -152,6 +152,23 @@ void ApiClient::requestPeersList() {
     QJsonObject req;
     req["id"] = QString::number(nextId_++);
     req["method"] = "peers.list";
+    QJsonObject params;
+    params["limit"] = limit;
+    req["params"] = params;
+    sendJsonLine(toJsonLine(req));
+}
+
+void ApiClient::requestPeersDiscover(int timeoutMs) {
+    if (!authed_) {
+        emit statusChanged("error: not authed");
+        return;
+    }
+    QJsonObject req;
+    req["id"] = QString::number(nextId_++);
+    req["method"] = "peers.discover";
+    QJsonObject params;
+    params["timeout_ms"] = timeoutMs;
+    req["params"] = params;
     sendJsonLine(toJsonLine(req));
 }
 
