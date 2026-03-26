@@ -3,6 +3,10 @@
 #include "core/config.h"
 #include "core/update_checker.h"
 #include "panel/api_client.h"
+#include "panel/message_delegate.h"
+#include "panel/message_list_model.h"
+#include "panel/peer_delegate.h"
+#include "panel/peer_list_model.h"
 
 #include "version.h"
 
@@ -15,7 +19,7 @@
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QLineEdit>
-#include <QListWidget>
+#include <QListView>
 #include <QMenu>
 #include <QMetaObject>
 #include <QMessageBox>
@@ -23,6 +27,8 @@
 #include <QPlainTextEdit>
 #include <QProcess>
 #include <QPushButton>
+#include <QSortFilterProxyModel>
+#include <QSplitter>
 #include <QSystemTrayIcon>
 #include <QTabWidget>
 #include <QTimer>
@@ -32,6 +38,8 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonArray>
+#include <QItemSelectionModel>
+#include <QRegularExpression>
 
 #include <atomic>
 #include <thread>
@@ -41,6 +49,33 @@
 #endif
 
 namespace zibby::panel {
+
+namespace {
+
+class PeerFilterProxyModel final : public QSortFilterProxyModel {
+public:
+    using QSortFilterProxyModel::QSortFilterProxyModel;
+
+protected:
+    bool filterAcceptsRow(int sourceRow, const QModelIndex& sourceParent) const override {
+        if (!sourceModel()) {
+            return false;
+        }
+        const auto idx = sourceModel()->index(sourceRow, 0, sourceParent);
+        const QString title = idx.data(PeerListModel::TitleRole).toString();
+        const QString subtitle = idx.data(PeerListModel::SubtitleRole).toString();
+        const QString peerId = idx.data(PeerListModel::PeerIdRole).toString();
+
+        const auto re = filterRegularExpression();
+        if (!re.isValid() || re.pattern().isEmpty()) {
+            return true;
+        }
+
+        return title.contains(re) || subtitle.contains(re) || peerId.contains(re);
+    }
+};
+
+} // namespace
 
 namespace {
 
@@ -191,30 +226,58 @@ MainWindow::MainWindow(QWidget* parent)
     // Messenger tab (fuller UI)
     {
         auto* w = new QWidget(this);
-        auto* root = new QHBoxLayout(w);
+        auto* root = new QVBoxLayout(w);
+
+        auto* splitter = new QSplitter(Qt::Horizontal, w);
+        splitter->setChildrenCollapsible(false);
+        root->addWidget(splitter, 1);
 
         // Left: peers/search
-        auto* left = new QWidget(w);
+        auto* left = new QWidget(splitter);
         auto* leftLayout = new QVBoxLayout(left);
         peerSearch_ = new QLineEdit(left);
         peerSearch_->setPlaceholderText("Search peers...");
         discoverBtn_ = new QPushButton("Auto-discover", left);
         refreshPeersBtn_ = new QPushButton("Refresh list", left);
-        peersList_ = new QListWidget(left);
-        peersList_->setSelectionMode(QAbstractItemView::SingleSelection);
+        peersView_ = new QListView(left);
+        peersView_->setSelectionMode(QAbstractItemView::SingleSelection);
+        peersView_->setUniformItemSizes(true);
+        peersView_->setVerticalScrollMode(QAbstractItemView::ScrollPerPixel);
+
+        peersModel_ = new PeerListModel(this);
+        peersProxy_ = new PeerFilterProxyModel(this);
+        peersProxy_->setSourceModel(peersModel_);
+        peersProxy_->setDynamicSortFilter(true);
+        peersProxy_->setFilterCaseSensitivity(Qt::CaseInsensitive);
+        peersView_->setModel(peersProxy_);
+        peersView_->setItemDelegate(new PeerDelegate(peersView_));
 
         leftLayout->addWidget(peerSearch_);
         leftLayout->addWidget(discoverBtn_);
         leftLayout->addWidget(refreshPeersBtn_);
-        leftLayout->addWidget(peersList_, 1);
+        leftLayout->addWidget(peersView_, 1);
 
         // Right: chat
-        auto* right = new QWidget(w);
+        auto* right = new QWidget(splitter);
         auto* rightLayout = new QVBoxLayout(right);
         chatTitle_ = new QLabel("Select a peer", right);
-        messagesList_ = new QListWidget(right);
-        messagesList_->setSelectionMode(QAbstractItemView::NoSelection);
-        messagesList_->setWordWrap(true);
+        QFont chatFont = chatTitle_->font();
+        chatFont.setBold(true);
+        chatTitle_->setFont(chatFont);
+
+        messagesView_ = new QListView(right);
+        messagesView_->setSelectionMode(QAbstractItemView::NoSelection);
+        messagesView_->setEditTriggers(QAbstractItemView::NoEditTriggers);
+        messagesView_->setFocusPolicy(Qt::NoFocus);
+        messagesView_->setVerticalScrollMode(QAbstractItemView::ScrollPerPixel);
+        messagesView_->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+        messagesView_->setWordWrap(true);
+        messagesView_->setSpacing(6);
+        messagesView_->setResizeMode(QListView::Adjust);
+
+        messagesModel_ = new MessageListModel(this);
+        messagesView_->setModel(messagesModel_);
+        messagesView_->setItemDelegate(new MessageDelegate(messagesView_));
 
         auto* inputRow = new QHBoxLayout();
         messageText_ = new QLineEdit(right);
@@ -224,11 +287,14 @@ MainWindow::MainWindow(QWidget* parent)
         inputRow->addWidget(sendBtn_);
 
         rightLayout->addWidget(chatTitle_);
-        rightLayout->addWidget(messagesList_, 1);
+        rightLayout->addWidget(messagesView_, 1);
         rightLayout->addLayout(inputRow);
 
-        root->addWidget(left, 0);
-        root->addWidget(right, 1);
+        splitter->addWidget(left);
+        splitter->addWidget(right);
+        splitter->setStretchFactor(0, 0);
+        splitter->setStretchFactor(1, 1);
+        left->setMinimumWidth(260);
 
         tabs->addTab(w, "Messenger");
 
@@ -241,12 +307,15 @@ MainWindow::MainWindow(QWidget* parent)
         connect(peerSearch_, &QLineEdit::textChanged, this, [this](const QString&) {
             refreshPeersUi();
         });
-        connect(peersList_, &QListWidget::currentRowChanged, this, [this](int row) {
-            if (row < 0 || row >= peersList_->count()) {
+        connect(peersView_->selectionModel(), &QItemSelectionModel::currentChanged, this, [this](const QModelIndex& current, const QModelIndex&) {
+            if (!current.isValid()) {
                 return;
             }
-            const auto peerId = peersList_->item(row)->data(Qt::UserRole).toString();
-            openPeerChat(peerId);
+            const QModelIndex src = peersProxy_ ? peersProxy_->mapToSource(current) : current;
+            const QString peerId = src.data(PeerListModel::PeerIdRole).toString();
+            if (!peerId.isEmpty()) {
+                openPeerChat(peerId);
+            }
         });
         connect(sendBtn_, &QPushButton::clicked, this, [this]() {
             if (currentPeerId_.isEmpty()) {
@@ -393,9 +462,9 @@ void MainWindow::handleRpcLine(const QString& rawJsonLine) {
 
     // peers.list
     if (res.contains("peers") && res.value("peers").isArray()) {
-        peers_.clear();
         const auto arr = res.value("peers").toArray();
-        peers_.reserve(arr.size());
+        QVector<PeerItem> peers;
+        peers.reserve(arr.size());
         for (const auto& v : arr) {
             if (!v.isObject()) {
                 continue;
@@ -409,8 +478,11 @@ void MainWindow::handleRpcLine(const QString& rawJsonLine) {
             item.version = p.value("version").toString();
             item.lastSeen = p.value("last_seen").toString();
             if (!item.peerId.isEmpty()) {
-                peers_.push_back(item);
+                peers.push_back(item);
             }
+        }
+        if (peersModel_) {
+            peersModel_->setPeers(std::move(peers));
         }
         refreshPeersUi();
         return;
@@ -421,49 +493,44 @@ void MainWindow::handleRpcLine(const QString& rawJsonLine) {
         if (currentPeerId_.isEmpty()) {
             return;
         }
-        messagesList_->clear();
         const auto arr = res.value("messages").toArray();
+        QVector<MessageItem> messages;
+        messages.reserve(arr.size());
         for (const auto& v : arr) {
             if (!v.isObject()) {
                 continue;
             }
             const auto m = v.toObject();
-            const QString from = m.value("from").toString();
-            const QString text = m.value("text").toString();
-            const QString createdAt = m.value("created_at").toString();
-
-            QString line = text;
-            if (!createdAt.isEmpty()) {
-                line = QString("%1\n%2").arg(createdAt, text);
-            }
-
-            auto* item = new QListWidgetItem(line, messagesList_);
-            if (!from.isEmpty() && from == localProfileId_) {
-                item->setTextAlignment(Qt::AlignRight);
-            } else {
-                item->setTextAlignment(Qt::AlignLeft);
-            }
+            MessageItem item;
+            item.from = m.value("from").toString();
+            item.to = m.value("to").toString();
+            item.text = m.value("text").toString();
+            item.createdAt = m.value("created_at").toString();
+            item.outgoing = (!item.from.isEmpty() && item.from == localProfileId_);
+            item.edited = m.value("edited").toBool(false);
+            item.read = m.value("read").toBool(false);
+            messages.push_back(std::move(item));
         }
-        messagesList_->scrollToBottom();
+        if (messagesModel_) {
+            messagesModel_->setMessages(std::move(messages));
+        }
+        if (messagesView_) {
+            messagesView_->scrollToBottom();
+        }
         return;
     }
 }
 
 void MainWindow::refreshPeersUi() {
-    if (!peersList_) {
+    if (!peersProxy_) {
         return;
     }
     const QString q = peerSearch_ ? peerSearch_->text().trimmed() : QString();
-    peersList_->clear();
-    for (const auto& p : peers_) {
-        const QString title = (p.name.isEmpty() ? p.peerId : (p.name + " (" + p.peerId + ")"));
-        if (!q.isEmpty() && !title.contains(q, Qt::CaseInsensitive) && !p.host.contains(q, Qt::CaseInsensitive)) {
-            continue;
-        }
-        auto* item = new QListWidgetItem(title, peersList_);
-        item->setData(Qt::UserRole, p.peerId);
-        item->setToolTip(QString("%1:%2\n%3\nlast_seen=%4").arg(p.host).arg(p.port).arg(p.version, p.lastSeen));
+    if (q.isEmpty()) {
+        peersProxy_->setFilterRegularExpression(QRegularExpression());
+        return;
     }
+    peersProxy_->setFilterRegularExpression(QRegularExpression(QRegularExpression::escape(q), QRegularExpression::CaseInsensitiveOption));
 }
 
 void MainWindow::openPeerChat(const QString& peerId) {

@@ -114,6 +114,14 @@ if(WIN32 AND ZIBBY_ENABLE_PANEL)
             src/panel/main_window.cpp
             src/panel/api_client.h
             src/panel/api_client.cpp
+            src/panel/peer_list_model.h
+            src/panel/peer_list_model.cpp
+            src/panel/peer_delegate.h
+            src/panel/peer_delegate.cpp
+            src/panel/message_list_model.h
+            src/panel/message_list_model.cpp
+            src/panel/message_delegate.h
+            src/panel/message_delegate.cpp
             src/panel/panel_entry.h
             src/panel/panel_entry.cpp
         )

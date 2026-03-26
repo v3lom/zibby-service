@@ -65,6 +65,16 @@ To build the panel with MSYS2/MinGW, install Qt6:
 ./scripts/install_deps_windows.ps1
 ```
 
+Build variants:
+
+```powershell
+# full build (embedded Qt panel, default)
+./build.ps1 -EnablePanel $true
+
+# normal build (headless, no Qt panel)
+./build.ps1 -EnablePanel $false
+```
+
 ### Windows service / autostart
 
 - NSIS installer (when available) runs best-effort setup:

@@ -1,0 +1,49 @@
+{
+  "version": 4,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 20,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "base",
+      "hidden": true,
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "ZIBBY_ENABLE_TESTS": "ON",
+        "ZIBBY_ENABLE_CALLS": "OFF",
+        "ZIBBY_ENABLE_PLUGINS": "ON"
+      }
+    },
+    {
+      "name": "full",
+      "displayName": "Full (embedded Qt panel)",
+      "inherits": "base",
+      "cacheVariables": {
+        "ZIBBY_ENABLE_PANEL": "ON",
+        "CMAKE_PREFIX_PATH": "$env{SystemDrive}/msys64/mingw64"
+      }
+    },
+    {
+      "name": "normal",
+      "displayName": "Normal (no Qt panel)",
+      "inherits": "base",
+      "cacheVariables": {
+        "ZIBBY_ENABLE_PANEL": "OFF"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "full",
+      "configurePreset": "full"
+    },
+    {
+      "name": "normal",
+      "configurePreset": "normal"
+    }
+  ]
+}
